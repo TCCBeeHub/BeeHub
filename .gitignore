@@ -1,0 +1,14 @@
+# Backend (Maven)
+backend/target/
+backend/.idea
+
+# Frontend (React)
+frontend/node_modules/
+frontend/build/
+
+# IDE
+.idea/
+*.iml
+
+# Variáveis de ambiente (se usar .env em algum lugar)
+.env
