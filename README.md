@@ -9,4 +9,3 @@ O BeeHub é um sistema que veio para facilitar a organização e manuntenção d
  - JPA
  - Hibernate
  - MySQL
- - 
