@@ -19,6 +19,7 @@ target/
 *.iml
 *.ipr
 uploads/*
+!uploads/ .gitkeep
 
 ### NetBeans ###
 /nbproject/private/
