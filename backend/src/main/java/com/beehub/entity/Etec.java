@@ -1,8 +1,10 @@
 package com.beehub.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.util.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.util.List;
 
 @Entity
 @Table(name = "etec")
@@ -12,7 +14,8 @@ import java.util.*;
 public class Etec {
 
     @Id
-    private Long codEtec;
+    @Column(length = 3)
+    private String codEtec;
 
     @Column(unique = true, nullable = false, length = 100)
     private String nome;

@@ -1,8 +1,10 @@
 package com.beehub.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.util.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.util.List;
 
 @Entity
 @Table(name = "curso")
