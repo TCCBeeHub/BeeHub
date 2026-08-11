@@ -7,6 +7,9 @@ public record AlunoRequestDTO(
     @Pattern(regexp = "\\d{5}", message = "O RM deve conter exatamente 5 números")
     String rmAluno,
 
+    @NotBlank(message = "Por favor, insira o nome")
+    String nome,
+
     @NotNull(message = "A Etec é obrigatória")
     @Pattern(regexp = "\\d{3}", message = "O código da Etec deve conter exatamente 3 números")
     String codEtec,

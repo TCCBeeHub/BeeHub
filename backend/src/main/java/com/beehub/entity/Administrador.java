@@ -19,6 +19,6 @@ public class Administrador {
     @Column(length = 50, nullable = false, unique = true)
     private String user;
 
-    @Column(length = 25, nullable = false)
+    @Column(nullable = false)
     private String senha;
 }

@@ -1,6 +1,6 @@
 package com.beehub.service;
 
-import com.beehub.dto.EtecResumoDTO;
+import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.entity.Etec;
 import com.beehub.exceptions.RecursoJaEncontradoException;
 import com.beehub.exceptions.RecursoNaoEncontradoException;

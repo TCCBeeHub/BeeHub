@@ -1,6 +1,6 @@
 package com.beehub.repository;
 
-import com.beehub.dto.EtecResumoDTO;
+import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.entity.Etec;
 import org.springframework.data.jpa.repository.JpaRepository;
 

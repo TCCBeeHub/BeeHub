@@ -1,4 +1,6 @@
 package com.beehub.dto.response;
 
-public record EtecResponseDTO() {
-}
+public record EtecResponseDTO(
+    String codEtec,
+    String nome
+) {}

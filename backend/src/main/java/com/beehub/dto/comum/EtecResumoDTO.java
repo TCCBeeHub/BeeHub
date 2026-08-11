@@ -1,4 +1,4 @@
-package com.beehub.dto;
+package com.beehub.dto.comum;
 
 public record EtecResumoDTO(
    String codEtec,

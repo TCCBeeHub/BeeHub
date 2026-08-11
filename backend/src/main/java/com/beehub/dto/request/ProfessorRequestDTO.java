@@ -9,6 +9,9 @@ public record ProfessorRequestDTO(
     @Pattern(regexp = "\\d{5,6}", message = "O RM deve conter entre 5 a 6 números")
     String rmProfessor,
 
+    @NotBlank(message = "Por favor, insira o nome")
+    String nome,
+
     @NotBlank(message = "A senha é obrigatória")
     @Size(min=6, max = 20, message = "A senha deve conter entre 6 a 20 caracteres")
     String senha
