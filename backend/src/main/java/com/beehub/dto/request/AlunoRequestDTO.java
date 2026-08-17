@@ -10,10 +10,6 @@ public record AlunoRequestDTO(
     @NotBlank(message = "Por favor, insira o nome")
     String nome,
 
-    @NotNull(message = "A Etec é obrigatória")
-    @Pattern(regexp = "\\d{3}", message = "O código da Etec deve conter exatamente 3 números")
-    String codEtec,
-
     @NotBlank(message = "A senha é obrigatória")
     @Size(min=6, max = 20, message = "A senha deve conter entre 6 a 20 caracteres")
     String senha
