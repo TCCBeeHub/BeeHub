@@ -1,6 +1,7 @@
 package com.beehub.dto.response;
 
 public record TccResponseDTO(
+    Long codTcc,
     String nomeGrupo,
     String tema,
     String descricao,

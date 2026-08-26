@@ -1,10 +1,12 @@
 package com.beehub.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record EtecRequestDTO(
-    @NotBlank(message = "A etec requer um código")
+    @NotBlank(message = "A etec requer um código.")
+    @Pattern(regexp = ("\\d{3}"), message = "O código precisa ter 3 números.")
     String codEtec,
 
     @NotBlank(message = "Por favor insira o nome da Etec")

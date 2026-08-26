@@ -3,6 +3,7 @@ package com.beehub.service;
 import com.beehub.entity.Administrador;
 import com.beehub.exceptions.AdminJaEncontradoException;
 import com.beehub.exceptions.RecursoNaoEncontradoException;
+import com.beehub.exceptions.UsuarioNaoEncontradoException;
 import com.beehub.repository.AdministradorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,16 +19,16 @@ public class AdministradorService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public Administrador inserirAdmin(Administrador administrador){
-        validarAdminName(administrador);
-        String senhaCriptografada = passwordEncoder.encode(administrador.getSenha());
-        administrador.setSenha(senhaCriptografada);
-        return administradorRepository.save(administrador);
-    }
-
-    private void validarAdminName(Administrador administrador){
-        if(administradorRepository.existsByUser(administrador.getUser())){
-            throw new RecursoNaoEncontradoException("O usuário do Admin inserido não foi encontrado!");
-        }
-    }
+//    public Administrador inserirAdmin(Administrador administrador){
+//        validarAdminName(administrador);
+//        String senhaCriptografada = passwordEncoder.encode(administrador.getSenha());
+//        administrador.setSenha(senhaCriptografada);
+//        return administradorRepository.save(administrador);
+//    }
+//
+//    private void validarAdminName(Administrador administrador){
+//        if(administradorRepository.existsByUser(administrador.getUser())){
+//            throw new AdminJaEncontradoException("Já possui um admin com este nome!");
+//        }
+//    }
 }

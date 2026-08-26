@@ -5,7 +5,6 @@ import com.beehub.dto.request.AlunoRequestDTO;
 import com.beehub.entity.Aluno;
 import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
-import com.beehub.repository.EtecRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
