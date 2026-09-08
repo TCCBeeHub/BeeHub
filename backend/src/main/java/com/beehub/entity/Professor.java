@@ -18,7 +18,7 @@ public class Professor {
     @Column(length = 60, nullable = false)
     private String senha;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String nome;
 
     @Column(length = 120)

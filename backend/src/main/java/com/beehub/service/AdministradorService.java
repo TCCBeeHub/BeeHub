@@ -1,9 +1,9 @@
 package com.beehub.service;
 
+import com.beehub.dto.request.AdministradorRequestDTO;
+import com.beehub.dto.response.AdministradorResponseDTO;
 import com.beehub.entity.Administrador;
-import com.beehub.exceptions.AdminJaEncontradoException;
-import com.beehub.exceptions.RecursoNaoEncontradoException;
-import com.beehub.exceptions.UsuarioNaoEncontradoException;
+import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
 import com.beehub.repository.AdministradorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,16 +19,23 @@ public class AdministradorService {
         this.passwordEncoder = passwordEncoder;
     }
 
-//    public Administrador inserirAdmin(Administrador administrador){
-//        validarAdminName(administrador);
-//        String senhaCriptografada = passwordEncoder.encode(administrador.getSenha());
-//        administrador.setSenha(senhaCriptografada);
-//        return administradorRepository.save(administrador);
-//    }
-//
-//    private void validarAdminName(Administrador administrador){
-//        if(administradorRepository.existsByUser(administrador.getUser())){
-//            throw new AdminJaEncontradoException("Já possui um admin com este nome!");
-//        }
-//    }
+    public AdministradorResponseDTO loginAdmin(AdministradorRequestDTO dto){
+        Administrador checarAdmin = administradorRepository.findAdministradorByUser(dto.user().trim())
+                .orElseThrow(() -> new UsuarioOuSenhaIncorretaException("Usuário ou senha inválidos!"));
+
+        validarSenha(dto.senha(), checarAdmin.getSenha());
+
+        return new AdministradorResponseDTO(
+                checarAdmin.getIdAdmin(),
+                checarAdmin.getUser(),
+                "Admin logado com sucesso!!!"
+        );
+    }
+
+    private void validarSenha(String senhaDigitada, String senhaHashBanco){
+        boolean senhaValida = passwordEncoder.matches(senhaDigitada, senhaHashBanco);
+        if(!senhaValida){
+            throw new UsuarioOuSenhaIncorretaException("Usuário ou senha inválidos!");
+        }
+    }
 }

@@ -3,7 +3,7 @@ package com.beehub.service;
 import com.beehub.dto.request.ProfessorLoginRequestDTO;
 import com.beehub.dto.request.ProfessorRequestDTO;
 import com.beehub.entity.Professor;
-import com.beehub.exceptions.SenhaIncorretaException;
+import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
 import com.beehub.exceptions.UsuarioJaExisteException;
 import com.beehub.exceptions.UsuarioNaoEncontradoException;
 import com.beehub.repository.ProfessorRepository;
@@ -52,7 +52,7 @@ public class ProfessorService {
     private void validarSenha(String senhaDigitada, String senhaHashBanco){
         boolean senhaValida = passwordEncoder.matches(senhaDigitada, senhaHashBanco);
         if(!senhaValida){
-            throw new SenhaIncorretaException("A senha digitada está incorreta");
+            throw new UsuarioOuSenhaIncorretaException("A senha digitada está incorreta");
         }
     }
 

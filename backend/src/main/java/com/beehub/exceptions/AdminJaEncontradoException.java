@@ -1,6 +1,6 @@
 package com.beehub.exceptions;
 
-public class AdminJaEncontradoException extends RuntimeException {
+public class AdminJaEncontradoException extends RecursoJaEncontradoException {
     public AdminJaEncontradoException(String message) {
         super(message);
     }

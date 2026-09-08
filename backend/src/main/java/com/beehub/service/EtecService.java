@@ -18,21 +18,6 @@ public class EtecService {
         this.etecRepository = etecRepository;
     }
 
-//    public Etec cadastrarEtec(EtecRequestDTO dto){
-//        String codEtec = dto.codEtec().trim();
-//        String nomeEtec = dto.nome().trim();
-//
-//        validarCodigoEtecExistente(codEtec);
-//        validarNomeEtec(nomeEtec);
-//
-//        Etec novaEtec = new Etec();
-//
-//        novaEtec.setCodEtec(codEtec);
-//        novaEtec.setNome(nomeEtec);
-//
-//        return etecRepository.save(novaEtec);
-//    }
-
     public EtecResumoDTO cadastrarEtec(EtecRequestDTO dto){
         String codEtec = dto.codEtec().trim();
         String nomeEtec = dto.nome().trim();

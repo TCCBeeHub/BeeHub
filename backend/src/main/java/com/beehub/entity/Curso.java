@@ -20,13 +20,11 @@ public class Curso {
     @Column(length = 100, nullable = false)
     private String nome;
 
-    private Integer quantAlunos;
-
-    @Column(length = 50)
+    @Column(length = 50, nullable = false)
     private String periodo;
 
-    @ManyToOne
-    @JoinColumn(name = "codEtec")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "codEtec", nullable = false)
     private Etec etec;
 
     @OneToMany(mappedBy = "curso")
@@ -34,4 +32,7 @@ public class Curso {
 
     @OneToMany(mappedBy = "curso")
     private List<Professor> professores;
+
+    @OneToMany(mappedBy = "curso")
+    private List<Grupo> grupos;
 }

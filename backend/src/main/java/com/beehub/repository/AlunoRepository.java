@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface AlunoRepository extends JpaRepository<Aluno, Long> {
     Optional<Aluno> findByRmAluno(Long rmAluno);
     boolean existsByRmAluno(Long rmAluno);
+    Long countAlunoByCurso_IdCurso(Long cursoIdCurso);
 }

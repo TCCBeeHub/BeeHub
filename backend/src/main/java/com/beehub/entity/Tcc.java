@@ -16,10 +16,10 @@ public class Tcc {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long codTcc;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String tema;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String descricao;
 
     private String linkFoto;

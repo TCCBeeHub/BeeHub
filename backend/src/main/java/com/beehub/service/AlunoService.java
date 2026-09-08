@@ -42,6 +42,17 @@ public class AlunoService {
         return alunoBanco;
     }
 
+    public void excluirAluno(Long rmAluno){
+        Aluno deletarAluno = alunoRepository.findByRmAluno(rmAluno)
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Não foi encontrado um aluno com este RM!"));
+
+        if(deletarAluno.getGrupo() != null){
+            throw new RecursoNaoPermitidoException("Este aluno está inserido em um grupo");
+        }
+
+        alunoRepository.delete(deletarAluno);
+    }
+
     private void validarRmAluno(Long rmAluno){
         if(alunoRepository.existsByRmAluno(rmAluno)){
             throw new UsuarioJaExisteException("Este Rm já está sendo usado");
@@ -51,7 +62,7 @@ public class AlunoService {
     private void validarSenha(String senhaDigitada, String senhaHashBanco){
         boolean senhaValida = passwordEncoder.matches(senhaDigitada, senhaHashBanco);
         if(!senhaValida){
-            throw new SenhaIncorretaException("A senha digitada está incorreta");
+            throw new UsuarioOuSenhaIncorretaException("A senha digitada está incorreta");
         }
     }
 }
