@@ -3,9 +3,9 @@ package com.beehub.dto.request;
 import jakarta.validation.constraints.*;
 
 public record AlunoRequestDTO(
-    @NotBlank(message = "O RM é obrigatório")
-    @Pattern(regexp = "\\d{5}", message = "O RM deve conter exatamente 5 números")
-    String rmAluno,
+    @NotNull(message = "O RM é obrigatório")
+    @Size(min = 5, max = 5, message = "O RM deve ter exatamente 5 números.")
+    Long rmAluno,
 
     @NotBlank(message = "Por favor, insira o nome")
     String nome,

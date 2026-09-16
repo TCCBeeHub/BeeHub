@@ -1,7 +1,7 @@
 package com.beehub.dto.response;
 
 public record ProfessorResponseDTO(
-    String rmProfessor,
+    Long rmProfessor,
     String nome,
     String email,
     String descricao,

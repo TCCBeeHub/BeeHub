@@ -1,7 +1,7 @@
 package com.beehub.dto.response;
 
 public record AlunoResponseDTO(
-    String rmAluno,
+    Long rmAluno,
     String nome,
     String email,
     String descricao,

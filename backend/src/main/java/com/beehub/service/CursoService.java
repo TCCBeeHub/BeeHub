@@ -1,6 +1,7 @@
 package com.beehub.service;
 
 import com.beehub.dto.comum.CursoResumoDTO;
+import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.dto.request.CursoRequestDTO;
 import com.beehub.dto.response.CursoResponseDTO;
 import com.beehub.dto.update.CursoRequestAtualizarDTO;
@@ -96,7 +97,11 @@ public class CursoService {
 
         return new CursoResponseDTO(
             curso.getIdCurso(),
-            curso.getEtec().getCodEtec(), curso.getNome(),
+            curso.getNome(),
+            new EtecResumoDTO(
+              curso.getEtec().getCodEtec(),
+              curso.getEtec().getNome()
+            ),
             alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
             curso.getPeriodo()
         );
@@ -109,8 +114,13 @@ public class CursoService {
         List<Curso> cursos = cursoRepository.findAllByEtec_CodEtec(codEtecNormalizado);
 
         return cursos.stream()
-                .map(curso -> new CursoResponseDTO(curso.getIdCurso(),
-                        curso.getEtec().getCodEtec().trim(), curso.getNome(),
+                .map(curso -> new CursoResponseDTO(
+                        curso.getIdCurso(),
+                        curso.getNome(),
+                        new EtecResumoDTO(
+                                curso.getEtec().getCodEtec(),
+                                curso.getEtec().getNome()
+                        ),
                         alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
                         curso.getPeriodo()))
                 .collect(Collectors.toList());

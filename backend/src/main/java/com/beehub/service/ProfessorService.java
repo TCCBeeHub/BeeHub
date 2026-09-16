@@ -6,22 +6,26 @@ import com.beehub.entity.Professor;
 import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
 import com.beehub.exceptions.UsuarioJaExisteException;
 import com.beehub.exceptions.UsuarioNaoEncontradoException;
+import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.ProfessorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProfessorService {
+    private final AlunoRepository alunoRepository;
     private final ProfessorRepository professorRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public ProfessorService(ProfessorRepository professorRepository, PasswordEncoder passwordEncoder){
+    public ProfessorService(ProfessorRepository professorRepository, PasswordEncoder passwordEncoder,
+                            AlunoRepository alunoRepository){
+        this.alunoRepository = alunoRepository;
         this.professorRepository = professorRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     public Professor cadastrarProfessor(ProfessorRequestDTO dto){
-        validarRmProfessor(Long.valueOf(dto.rmProfessor()));
+        validarRm(Long.valueOf(dto.rmProfessor()));
 
         Professor novoProfessor = new Professor();
         novoProfessor.setRmProfessor(Long.valueOf(dto.rmProfessor()));
@@ -43,8 +47,8 @@ public class ProfessorService {
         return professorBanco;
     }
 
-    private void validarRmProfessor(Long rmProfessor){
-        if(professorRepository.existsByRmProfessor(rmProfessor)){
+    private void validarRm(Long rm){
+        if(alunoRepository.existsByRmAluno(rm) || professorRepository.existsByRmProfessor(rm)){
             throw new UsuarioJaExisteException("Este Rm já está sendo usado");
         }
     }

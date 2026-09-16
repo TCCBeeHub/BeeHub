@@ -17,3 +17,6 @@ spring:
 app:
   upload:
     dir: "./uploads/"
+
+server:
+  port: ${PORT:8080}
