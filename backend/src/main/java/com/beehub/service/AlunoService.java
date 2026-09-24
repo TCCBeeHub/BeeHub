@@ -13,7 +13,7 @@ import com.beehub.entity.Curso;
 import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.CursoRepository;
-import com.beehub.repository.ProfessorRepository;
+import com.beehub.security.UsuarioValidator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,22 +25,22 @@ import java.util.stream.Collectors;
 public class AlunoService {
     private final AlunoRepository alunoRepository;
     private final CursoRepository cursoRepository;
-    private final ProfessorRepository professorRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioValidator usuarioValidator;
 
     public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder,
-                        ProfessorRepository professorRepository, CursoRepository cursoRepository){
+                        CursoRepository cursoRepository, UsuarioValidator usuarioValidator){
         this.alunoRepository = alunoRepository;
         this.cursoRepository = cursoRepository;
-        this.professorRepository = professorRepository;
+        this.usuarioValidator = usuarioValidator;
         this.passwordEncoder = passwordEncoder;
     }
 
     public AlunoResumoDTO cadastrarAluno(AlunoRequestDTO dto, Long idCurso){
-        validarRm(dto.rmAluno());
+        usuarioValidator.validarRm(dto.rmAluno());
 
         Curso curso = cursoRepository.findCursoByIdCurso(idCurso)
-                .orElseThrow(() -> new CursoNaoEncontradoException("Não existe um curso com esse ID."));
+                .orElseThrow(CursoNaoEncontradoException::new);
 
 
         Aluno novoAluno = new Aluno();
@@ -72,9 +72,9 @@ public class AlunoService {
     public UsuarioResumoDTO loginAluno(AlunoLoginRequestDTO dto){
         Long rm = dto.rmAluno();
         Aluno alunoBanco = alunoRepository.findByRmAluno(rm)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("Usuário não foi encontrado"));
+                .orElseThrow(() -> new UsuarioOuSenhaIncorretaException("Usuário ou senha inválidos!"));
 
-        validarSenha(dto.senha(), alunoBanco.getSenha());
+        usuarioValidator.validarSenha(dto.senha(), alunoBanco.getSenha());
 
         return new UsuarioResumoDTO(
                 alunoBanco.getRmAluno(),
@@ -85,7 +85,7 @@ public class AlunoService {
 
     public AlunoResponseDTO atualizarAluno(AlunoRequestAtualizarDTO dto, Long rmAluno){
         Aluno atualizarAluno = alunoRepository.findByRmAluno(rmAluno)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("O aluno não foi encontrado!"));
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
 
         String novoEmail = dto.email();
         String novaSenha = dto.novaSenha();
@@ -95,18 +95,27 @@ public class AlunoService {
         if (novoEmail != null && !novoEmail.isBlank()) {
             novoEmail = novoEmail.trim();
 
-            if (!alunoRepository.existsByEmailIgnoreCaseAndRmAlunoNot(novoEmail, rmAluno)) {
-                atualizarAluno.setEmail(novoEmail);
+            if(!novoEmail.matches("^[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")){
+                throw new EmailInvalidoException("Email com formato inválido!");
             }
+
+            if (alunoRepository.existsByEmailIgnoreCaseAndRmAlunoNot(novoEmail, rmAluno)) {
+                throw new EmailInvalidoException("Email inválido!");
+            }
+
+            atualizarAluno.setEmail(novoEmail);
         }
+
         if(novaSenha != null && !novaSenha.isBlank()){
             atualizarAluno.setSenha(passwordEncoder.encode(novaSenha));
         }
-        if(novaDescricao != null){
+
+        if(novaDescricao != null && !novaDescricao.isBlank()){
             atualizarAluno.setDescricao(novaDescricao);
         }
-        if(novaFoto != null){
-            atualizarAluno.setLinkFoto(novaFoto);
+
+        if(novaFoto != null && !novaFoto.isBlank()){
+            atualizarAluno.setLinkFoto(novaFoto.trim());
         }
 
         Aluno alunoAtualizado = alunoRepository.save(atualizarAluno);
@@ -123,10 +132,9 @@ public class AlunoService {
 
     public List<UsuarioResumoDTO> listarAlunos(Long idCurso){
 
-        cursoRepository.findCursoByIdCurso(idCurso)
-                .orElseThrow(() -> new CursoNaoEncontradoException(
-                        "Não existe um curso com esse ID."
-                ));
+        if(!cursoRepository.existsById(idCurso)){
+            throw new CursoNaoEncontradoException();
+        }
 
         List<Aluno> alunos = alunoRepository.findAllByCurso_IdCurso(idCurso);
 
@@ -134,18 +142,16 @@ public class AlunoService {
                 .map(aluno -> new UsuarioResumoDTO(
                         aluno.getRmAluno(),
                         aluno.getNome(),
-                        aluno.getEmail()
-                        //colocar o nome do curso
+                        aluno.getLinkFoto()
                 ))
                 .collect(Collectors.toList());
     }
 
     public AlunoResumoDTO listarAluno(Long rmAluno){
         Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("Não existe um aluno com este RM!"));
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
 
-        Curso cursoAluno = cursoRepository.findCursoByIdCurso(aluno.getCurso().getIdCurso())
-                .orElseThrow(() -> new CursoNaoEncontradoException("O curso não foi encontrado"));
+        Curso cursoAluno = aluno.getCurso();
 
         return new AlunoResumoDTO(
                 aluno.getRmAluno(),
@@ -165,25 +171,12 @@ public class AlunoService {
 
     public void excluirAluno(Long rmAluno){
         Aluno deletarAluno = alunoRepository.findByRmAluno(rmAluno)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("Não foi encontrado um aluno com este RM!"));
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
 
         if(deletarAluno.getGrupo() != null){
             throw new RecursoNaoPermitidoException("Este aluno está inserido em um grupo");
         }
 
         alunoRepository.delete(deletarAluno);
-    }
-
-    private void validarRm(Long rm){
-        if(alunoRepository.existsByRmAluno(rm) || professorRepository.existsByRmProfessor(rm)){
-            throw new UsuarioJaExisteException("RM incompatível!");
-        }
-    }
-
-    private void validarSenha(String senhaDigitada, String senhaHashBanco){
-        boolean senhaValida = passwordEncoder.matches(senhaDigitada, senhaHashBanco);
-        if(!senhaValida){
-            throw new UsuarioOuSenhaIncorretaException("A senha digitada está incorreta");
-        }
     }
 }

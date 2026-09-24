@@ -1,7 +1,8 @@
 package com.beehub.dto.comum;
 
 public record ProfessorResumoDTO(
-    String rmProfessor,
+    Long rmProfessor,
     String nome,
+    CursoUsuarioResumoDTO curso,
     String urlFoto
 ) {}

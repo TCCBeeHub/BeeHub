@@ -65,7 +65,7 @@ public class CursoService {
         validarCodEtec(codEtecNormalizado);
 
         Curso atualizarInfoCurso = cursoRepository.findCursoByIdCursoAndEtec_CodEtec(idCurso, codEtecNormalizado)
-                .orElseThrow(() -> new CursoNaoEncontradoException("O curso não foi encontrado"));
+                .orElseThrow(CursoNaoEncontradoException::new);
 
         String novoNome = dto.nome().trim();
         String novoPeriodo = dto.periodo().trim();
@@ -128,7 +128,7 @@ public class CursoService {
 
     public void excluirCurso(Long idCurso){
         Curso deletarCurso = cursoRepository.findCursoByIdCurso(idCurso)
-                .orElseThrow(() -> new CursoNaoEncontradoException("O curso requerido não existe."));
+                .orElseThrow(CursoNaoEncontradoException::new);
 
         if(!deletarCurso.getAlunos().isEmpty() || !deletarCurso.getProfessores().isEmpty()
             || !deletarCurso.getGrupos().isEmpty()){
