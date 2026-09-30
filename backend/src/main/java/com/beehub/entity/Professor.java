@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "professor")
 @Getter
@@ -29,11 +31,6 @@ public class Professor {
 
     private String linkFoto;
 
-    @ManyToOne
-    @JoinColumn(name = "idCurso")
-    private Curso curso;
-
-    @ManyToOne
-    @JoinColumn(name = "idGrupo")
-    private Grupo grupo;
+    @OneToMany(mappedBy = "professor")
+    private List<Orientacao> orientacoes;
 }

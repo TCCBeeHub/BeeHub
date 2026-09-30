@@ -31,7 +31,7 @@ public class Curso {
     private List<Aluno> alunos;
 
     @OneToMany(mappedBy = "curso")
-    private List<Professor> professores;
+    private List<Orientacao> orientacoes;
 
     @OneToMany(mappedBy = "curso")
     private List<Grupo> grupos;

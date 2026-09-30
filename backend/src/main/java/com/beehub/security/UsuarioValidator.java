@@ -1,6 +1,5 @@
 package com.beehub.security;
 
-import com.beehub.exceptions.UsuarioJaExisteException;
 import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.ProfessorRepository;
@@ -12,6 +11,7 @@ public class UsuarioValidator {
     private final AlunoRepository alunoRepository;
     private final ProfessorRepository professorRepository;
     private final PasswordEncoder passwordEncoder;
+
 
     public UsuarioValidator(AlunoRepository alunoRepository, ProfessorRepository professorRepository,
                             PasswordEncoder passwordEncoder){
@@ -28,6 +28,7 @@ public class UsuarioValidator {
 
     public void validarSenha(String senhaDigitada, String senhaHashBanco){
         boolean senhaValida = passwordEncoder.matches(senhaDigitada, senhaHashBanco);
+        // Mesma exception do rm, para omitir informações à terceiros
         if(!senhaValida){
             throw new UsuarioOuSenhaIncorretaException("Usuário ou senha inválidos!");
         }

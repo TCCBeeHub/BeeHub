@@ -4,6 +4,13 @@ import com.beehub.exceptions.AcessoNaoPermitidoException;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Component;
 
+/**
+ * Classe com o objetivo de garantir que a sessão seja específica de cada usuário (aluno, professor, admin)
+ *
+ * Importante: Diferenciar ações permitidas chamadas nas classes de Controller,
+ * requerindo que estejam logados para atribuir as funcionalidades.
+ *
+ */
 @Component
 public class SessaoValidator {
     public static final String ADMINISTRADOR = "ADMINISTRADOR_AUTENTICADO";

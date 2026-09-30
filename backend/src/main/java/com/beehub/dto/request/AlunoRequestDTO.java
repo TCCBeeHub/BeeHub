@@ -4,7 +4,8 @@ import jakarta.validation.constraints.*;
 
 public record AlunoRequestDTO(
     @NotNull(message = "O RM é obrigatório")
-    @Size(min = 5, max = 5, message = "O RM deve ter exatamente 5 números.")
+    @Min(value = 10000, message = "O RM está fora da faixa esperada")
+    @Max(value = 99999, message = "O RM está fora da faixa esperada")
     Long rmAluno,
 
     @NotBlank(message = "Por favor, insira o nome")

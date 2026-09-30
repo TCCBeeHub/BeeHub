@@ -1,13 +1,14 @@
 package com.beehub.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+
+import java.util.List;
 
 public record ProfessorRequestDTO(
     @NotNull(message = "O RM é obrigatório")
-    @Size(min = 5, max = 6, message = "O RM deve conter entre 5 a 6 números")
+    @Min(value = 10000, message = "O RM está fora da faixa esperada")
+    @Max(value = 999999, message = "O RM está fora da faixa esperada")
     Long rmProfessor,
 
     @NotBlank(message = "Por favor, insira o nome")
@@ -15,5 +16,8 @@ public record ProfessorRequestDTO(
 
     @NotBlank(message = "A senha é obrigatória")
     @Size(min=6, max = 20, message = "A senha deve conter entre 6 a 20 caracteres")
-    String senha
+    String senha,
+
+    @Valid
+    List<OrientacaoRequestDTO> orientacao
 ) {}

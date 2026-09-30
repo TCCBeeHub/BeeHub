@@ -27,6 +27,7 @@ public class AlunoService {
     private final CursoRepository cursoRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioValidator usuarioValidator;
+    private static final String URL_FOTO_PADRAO = "/imagens/foto-sem-perfil.png";
 
     public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder,
                         CursoRepository cursoRepository, UsuarioValidator usuarioValidator){
@@ -95,6 +96,7 @@ public class AlunoService {
         if (novoEmail != null && !novoEmail.isBlank()) {
             novoEmail = novoEmail.trim();
 
+            //comparar email com formatação padrão @ e . (EX: beehub@gmail.com)
             if(!novoEmail.matches("^[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")){
                 throw new EmailInvalidoException("Email com formato inválido!");
             }
@@ -107,6 +109,10 @@ public class AlunoService {
         }
 
         if(novaSenha != null && !novaSenha.isBlank()){
+            if(passwordEncoder.matches(novaSenha, atualizarAluno.getSenha())){
+                throw new SenhaJaUtilizadaException("Você já está utilizando esta senha!");
+            }
+
             atualizarAluno.setSenha(passwordEncoder.encode(novaSenha));
         }
 
@@ -114,8 +120,14 @@ public class AlunoService {
             atualizarAluno.setDescricao(novaDescricao);
         }
 
-        if(novaFoto != null && !novaFoto.isBlank()){
-            atualizarAluno.setLinkFoto(novaFoto.trim());
+        if(novaFoto != null){
+            if(novaFoto.isBlank()){
+                atualizarAluno.setLinkFoto(URL_FOTO_PADRAO);
+            }
+
+            else{
+                atualizarAluno.setLinkFoto(novaFoto.trim());
+            }
         }
 
         Aluno alunoAtualizado = alunoRepository.save(atualizarAluno);

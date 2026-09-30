@@ -1,13 +1,11 @@
 package com.beehub.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 public record AlunoLoginRequestDTO(
         @NotNull(message = "O RM é obrigatório")
-        @Size(min = 5, max = 5, message = "O RM deve ter exatamente 5 números.")
+        @Min(value = 10000, message = "O RM está fora da faixa esperada")
+        @Max(value = 99999, message = "O RM está fora da faixa esperada")
         Long rmAluno,
 
         @NotBlank(message = "A senha é obrigatória")

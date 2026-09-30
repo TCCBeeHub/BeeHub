@@ -26,6 +26,7 @@ public class ProfessorService {
     private final PasswordEncoder passwordEncoder;
     private final ProfessorRepository professorRepository;
     private final UsuarioValidator usuarioValidator;
+    private static final String URL_FOTO_PADRAO = "/imagens/foto-sem-perfil.png";
 
     public ProfessorService(ProfessorRepository professorRepository, PasswordEncoder passwordEncoder,
                             CursoRepository cursoRepository, UsuarioValidator usuarioValidator){
@@ -93,6 +94,7 @@ public class ProfessorService {
         if(novoEmail != null && !novoEmail.isBlank()){
             novoEmail = novoEmail.trim();
 
+            //comparar email com formatação padrão @ e . (EX: beehub@gmail.com)
             if(!novoEmail.matches("^[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")){
                 throw new EmailInvalidoException("Email com formato inválido!");
             }
@@ -105,6 +107,9 @@ public class ProfessorService {
         }
 
         if(novaSenha != null && !novaSenha.isBlank()){
+            if(passwordEncoder.matches(novaSenha, atualizarProfessor.getSenha())){
+                throw new SenhaJaUtilizadaException("Você já está utilizando esta senha!");
+            }
             atualizarProfessor.setSenha(passwordEncoder.encode(novaSenha));
         }
 
@@ -112,8 +117,14 @@ public class ProfessorService {
             atualizarProfessor.setDescricao(novaDescricao);
         }
 
-        if(novaFotoPerfil != null && !novaFotoPerfil.isBlank()){
-            atualizarProfessor.setLinkFoto(novaFotoPerfil);
+        if(novaFotoPerfil != null){
+            if(novaFotoPerfil.isBlank()){
+                atualizarProfessor.setLinkFoto(URL_FOTO_PADRAO);
+            }
+
+            else{
+                atualizarProfessor.setLinkFoto(novaFotoPerfil.trim());
+            }
         }
 
         Professor professorAtualizado = professorRepository.save(atualizarProfessor);

@@ -2,6 +2,7 @@ package com.beehub.controller;
 
 import com.beehub.dto.request.AdministradorRequestDTO;
 import com.beehub.dto.response.AdministradorResponseDTO;
+import com.beehub.security.SessaoValidator;
 import com.beehub.service.AdministradorService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -24,7 +25,7 @@ public class AdministradorController {
         AdministradorResponseDTO admin = administradorService.loginAdmin(dto);
 
         session.setAttribute(
-               "ADMIN_AUTENTICADO",
+               SessaoValidator.ADMINISTRADOR,
                 admin.idAdmin()
         );
 

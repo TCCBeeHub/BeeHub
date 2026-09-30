@@ -21,14 +21,11 @@ public class Grupo {
     private String nomeGrupo;
 
     @ManyToOne
-    @JoinColumn(name = "idCurso")
-    private Curso curso;
+    @JoinColumn(name = "idOrientacao")
+    private Orientacao orientacao;
 
     @OneToMany(mappedBy = "grupo")
     private List<Aluno> alunos;
-
-    @OneToMany(mappedBy = "grupo")
-    private List<Professor> professores;
 
     @OneToOne(mappedBy = "grupo")
     private Tcc tcc;
