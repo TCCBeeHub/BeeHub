@@ -37,6 +37,26 @@ public class SessaoValidator {
         }
     }
 
+    public Long validarAlunoLogado(HttpSession session){
+        Long alunoRM = (Long) session.getAttribute(PROFESSOR);
+
+        if(session.getAttribute(ALUNO) == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        return alunoRM;
+    }
+
+    public Long validarProfessorLogado(HttpSession session){
+        Long professorRM = (Long) session.getAttribute(PROFESSOR);
+
+        if(session.getAttribute(PROFESSOR) == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        return professorRM;
+    }
+
     public void validarProfessor(HttpSession session, Long rmProfessor){
         Long professorRM = (Long) session.getAttribute(PROFESSOR);
 

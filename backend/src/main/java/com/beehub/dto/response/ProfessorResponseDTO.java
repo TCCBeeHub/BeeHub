@@ -5,6 +5,5 @@ public record ProfessorResponseDTO(
     String nome,
     String email,
     String descricao,
-    String nomeCurso,
     String urlFoto
 ) {}

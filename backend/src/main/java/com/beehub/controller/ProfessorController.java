@@ -23,12 +23,12 @@ public class ProfessorController {
     private final ProfessorService professorService;
     private final SessaoValidator sessaoValidator;
 
-    @PostMapping("/curso/{idCurso}")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ProfessorResumoDTO cadastrarProfessor(@Valid @RequestBody ProfessorRequestDTO dto,
-                            @PathVariable Long idCurso, HttpSession session){
+                                                 HttpSession session){
         sessaoValidator.validarAdmin(session);
-        return professorService.cadastrarProfessor(dto, idCurso);
+        return professorService.cadastrarProfessor(dto);
     }
 
     @PostMapping("/login")
@@ -48,8 +48,8 @@ public class ProfessorController {
     @PutMapping("/{rmProfessor}")
     @ResponseStatus(HttpStatus.OK)
     public ProfessorResponseDTO atualizarProfessor(@Valid @RequestBody ProfessorRequestAtualizarDTO dto,
-                                               @PathVariable Long rmProfessor,
-                                               HttpSession session){
+                                                   @PathVariable Long rmProfessor,
+                                                   HttpSession session){
         sessaoValidator.validarProfessor(session, rmProfessor);
         return professorService.atualizarProfessor(dto, rmProfessor);
     }
@@ -57,7 +57,7 @@ public class ProfessorController {
     @GetMapping("/curso/{idCurso}")
     @ResponseStatus(HttpStatus.OK)
     public List<UsuarioResumoDTO> listarProfessores(@PathVariable Long idCurso,
-                                    HttpSession session){
+                                                    HttpSession session){
         sessaoValidator.validarAcessoInterno(session);
         return professorService.listarProfessores(idCurso);
     }

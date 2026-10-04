@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "tcc")
 @Getter
@@ -30,7 +32,16 @@ public class Tcc {
 
     private String linkSlide;
 
+    private LocalDate dataCriacao;
+
     @OneToOne
     @JoinColumn(name = "id_grupo", unique = true, nullable = false)
     private Grupo grupo;
+
+    @PrePersist
+    public void prePersist(){
+        if(this.dataCriacao == null){
+            this.dataCriacao = LocalDate.now();
+        }
+    }
 }

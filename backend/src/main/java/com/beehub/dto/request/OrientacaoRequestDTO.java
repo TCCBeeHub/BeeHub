@@ -8,6 +8,9 @@ public record OrientacaoRequestDTO(
         Long idCurso,
 
         @NotNull
+        Long rmProfessor,
+
+        @NotNull
         GrupoOrientacao grupo
 ) {
 }

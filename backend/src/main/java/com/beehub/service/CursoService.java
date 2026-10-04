@@ -12,6 +12,7 @@ import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.CursoRepository;
 import com.beehub.repository.EtecRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public class CursoService {
         this.alunoRepository = alunoRepository;
     }
 
+    @Transactional
     public CursoResumoDTO cadastrarCurso(CursoRequestDTO dto){
         String codEtec = dto.codEtec().trim();
         String nomeCurso = dto.nome().trim();
@@ -59,6 +61,7 @@ public class CursoService {
         );
     }
 
+    @Transactional
     public CursoResumoDTO atualizarCurso(Long idCurso, String codEtec, CursoRequestAtualizarDTO dto){
         String codEtecNormalizado = codEtec.trim();
 
@@ -88,6 +91,7 @@ public class CursoService {
         );
     }
 
+    @Transactional(readOnly = true)
     public CursoResponseDTO listarCurso(Long idCurso, String codEtec){
         String codEtecNormalizado = codEtec.trim();
         validarCodEtec(codEtecNormalizado);
@@ -96,17 +100,18 @@ public class CursoService {
                 .orElseThrow(() -> new CursoNaoEncontradoException("O id deste curso não foi encontrado nesta etec."));
 
         return new CursoResponseDTO(
-            curso.getIdCurso(),
-            curso.getNome(),
-            new EtecResumoDTO(
-              curso.getEtec().getCodEtec(),
-              curso.getEtec().getNome()
-            ),
-            alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
-            curso.getPeriodo()
+                curso.getIdCurso(),
+                curso.getNome(),
+                new EtecResumoDTO(
+                        curso.getEtec().getCodEtec(),
+                        curso.getEtec().getNome()
+                ),
+                alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
+                curso.getPeriodo()
         );
     }
 
+    @Transactional(readOnly = true)
     public List<CursoResponseDTO> listarCursos(String codEtec){
         String codEtecNormalizado = codEtec.trim();
         validarCodEtec(codEtecNormalizado);
@@ -126,12 +131,12 @@ public class CursoService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void excluirCurso(Long idCurso){
         Curso deletarCurso = cursoRepository.findCursoByIdCurso(idCurso)
                 .orElseThrow(CursoNaoEncontradoException::new);
 
-        if(!deletarCurso.getAlunos().isEmpty() || !deletarCurso.getProfessores().isEmpty()
-            || !deletarCurso.getGrupos().isEmpty()){
+        if(!deletarCurso.getAlunos().isEmpty() || !deletarCurso.getOrientacoes().isEmpty()){
             throw new RecursoNaoPermitidoException("Há dados dentro deste curso!");
         }
 

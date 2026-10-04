@@ -4,6 +4,7 @@ import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.dto.request.EtecRequestDTO;
 import com.beehub.dto.update.EtecRequestAtualizarDTO;
 import com.beehub.exceptions.AcessoNaoPermitidoException;
+import com.beehub.security.SessaoValidator;
 import com.beehub.service.EtecService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -18,13 +19,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EtecController {
     private final EtecService etecService;
+    private final SessaoValidator sessaoValidator;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EtecResumoDTO criarEtec(
             @Valid @RequestBody EtecRequestDTO dto,
             HttpSession session){
-        validarAdmin(session);
+        sessaoValidator.validarAdmin(session);
 
         return etecService.cadastrarEtec(dto);
     }
@@ -34,7 +36,7 @@ public class EtecController {
     public EtecResumoDTO atualizarEtec(@PathVariable String codEtec,
                                        @Valid @RequestBody EtecRequestAtualizarDTO dto,
                                         HttpSession session){
-        validarAdmin(session);
+        sessaoValidator.validarAdmin(session);
 
         return etecService.atualizarEtec(codEtec, dto);
     }
@@ -57,16 +59,8 @@ public class EtecController {
             @PathVariable String codEtec,
             HttpSession session){
 
-        validarAdmin(session);
+        sessaoValidator.validarAdmin(session);
 
         etecService.excluirEtec(codEtec);
-    }
-
-    private void validarAdmin(HttpSession session){
-        Object adminId = session.getAttribute("ADMIN_AUTENTICADO");
-
-        if(adminId == null){
-            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
-        }
     }
 }

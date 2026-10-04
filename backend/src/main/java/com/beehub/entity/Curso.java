@@ -32,7 +32,4 @@ public class Curso {
 
     @OneToMany(mappedBy = "curso")
     private List<Orientacao> orientacoes;
-
-    @OneToMany(mappedBy = "curso")
-    private List<Grupo> grupos;
 }

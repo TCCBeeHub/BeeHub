@@ -7,6 +7,7 @@ import com.beehub.entity.Etec;
 import com.beehub.exceptions.*;
 import com.beehub.repository.EtecRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,18 +59,6 @@ public class EtecService {
         );
     }
 
-    public void excluirEtec(String codEtec){
-        Etec deletarEtec = etecRepository.findEtecByCodEtec(codEtec)
-                .orElseThrow(() -> new EtecNaoEncontradaException("A Etec solicitada não existe!"));
-
-        if(!deletarEtec.getCursos().isEmpty()){
-            throw new RecursoNaoPermitidoException("Uma Etec não pode ser excluída contendo cursos!");
-        }
-
-        etecRepository.delete(deletarEtec);
-    }
-
-
     public EtecResumoDTO listarEtec(String codEtec){
         return etecRepository.findResumoByCodEtec(codEtec).orElseThrow(() -> new EtecNaoEncontradaException("Etec não encontrada!"));
     }
@@ -80,6 +69,18 @@ public class EtecService {
         return etecs.stream()
                 .map(etec -> new EtecResumoDTO(etec.getCodEtec(), etec.getNome()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void excluirEtec(String codEtec){
+        Etec deletarEtec = etecRepository.findEtecByCodEtec(codEtec)
+                .orElseThrow(() -> new EtecNaoEncontradaException("A Etec solicitada não existe!"));
+
+        if(!deletarEtec.getCursos().isEmpty()){
+            throw new RecursoNaoPermitidoException("Uma Etec não pode ser excluída contendo cursos!");
+        }
+
+        etecRepository.delete(deletarEtec);
     }
 
     private void validarCodigoEtecExistente(String codEtec){

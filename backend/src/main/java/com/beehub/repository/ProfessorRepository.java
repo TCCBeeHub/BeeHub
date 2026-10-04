@@ -10,5 +10,4 @@ public interface ProfessorRepository extends JpaRepository<Professor, Long> {
     boolean existsByRmProfessor(Long rmProfessor);
     Optional<Professor> findByRmProfessor(Long rmProfessor);
     boolean existsByEmailIgnoreCaseAndRmProfessorNot(String email, Long rmProfessor);
-    List<Professor> findAllByCurso_IdCurso(Long idCurso);
 }

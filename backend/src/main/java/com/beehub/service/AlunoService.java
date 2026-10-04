@@ -16,6 +16,7 @@ import com.beehub.repository.CursoRepository;
 import com.beehub.security.UsuarioValidator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ public class AlunoService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public AlunoResumoDTO cadastrarAluno(AlunoRequestDTO dto, Long idCurso){
         usuarioValidator.validarRm(dto.rmAluno());
 
@@ -84,6 +86,7 @@ public class AlunoService {
         );
     }
 
+    @Transactional
     public AlunoResponseDTO atualizarAluno(AlunoRequestAtualizarDTO dto, Long rmAluno){
         Aluno atualizarAluno = alunoRepository.findByRmAluno(rmAluno)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
@@ -142,6 +145,7 @@ public class AlunoService {
         );
     }
 
+    @Transactional(readOnly = true)
     public List<UsuarioResumoDTO> listarAlunos(Long idCurso){
 
         if(!cursoRepository.existsById(idCurso)){
@@ -159,6 +163,7 @@ public class AlunoService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public AlunoResumoDTO listarAluno(Long rmAluno){
         Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
@@ -181,6 +186,7 @@ public class AlunoService {
         );
     }
 
+    @Transactional
     public void excluirAluno(Long rmAluno){
         Aluno deletarAluno = alunoRepository.findByRmAluno(rmAluno)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
