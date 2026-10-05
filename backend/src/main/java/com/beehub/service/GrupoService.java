@@ -13,6 +13,7 @@ import com.beehub.repository.GrupoRepository;
 import com.beehub.repository.OrientacaoRepository;
 import com.beehub.repository.ProfessorRepository;
 import com.beehub.security.SessaoValidator;
+import com.beehub.security.UsuarioValidator;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,19 +26,19 @@ import java.util.Objects;
 public class GrupoService {
     private final AlunoRepository alunoRepository;
     private final GrupoRepository grupoRepository;
-    private final ProfessorRepository professorRepository;
     private final OrientacaoRepository orientacaoRepository;
-    private final SessaoValidator sessaoValidator;
+    private final ProfessorRepository professorRepository;
+    private final UsuarioValidator usuarioValidator;
     private static final String URL_FOTO_PADRAO = "/imagens/foto-sem-perfil.png";
 
     public GrupoService(AlunoRepository alunoRepository, GrupoRepository grupoRepository,
                         ProfessorRepository professorRepository, OrientacaoRepository orientacaoRepository,
-                        SessaoValidator sessaoValidator){
+                        UsuarioValidator usuarioValidator){
         this.alunoRepository = alunoRepository;
         this.grupoRepository = grupoRepository;
         this.orientacaoRepository = orientacaoRepository;
         this.professorRepository = professorRepository;
-        this.sessaoValidator = sessaoValidator;
+        this.usuarioValidator = usuarioValidator;
     }
 
     @Transactional
@@ -82,7 +83,7 @@ public class GrupoService {
         Grupo atualizarGrupo = grupoRepository.findByIdGrupo(idGrupo)
                 .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
 
-        validarAlunoGrupo(atualizarGrupo, rmAluno);
+        usuarioValidator.validarAlunoGrupo(atualizarGrupo, rmAluno);
 
         String novoNomeGrupo = dto.nomeGrupo();
         String novaFoto = dto.linkFoto();
@@ -252,15 +253,6 @@ public class GrupoService {
         }
 
         grupoRepository.delete(deletarGrupo);
-    }
-
-    private void validarAlunoGrupo(Grupo grupo, Long rmAluno){
-        Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
-                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
-
-        if(aluno.getGrupo() == null || !aluno.getGrupo().getIdGrupo().equals(grupo.getIdGrupo())){
-            throw new AlunoNaoPertenceAoGrupoException("Este aluno não pertence a este grupo!");
-        }
     }
 
     private void validarProfessorGrupo(Grupo grupo, Long rmProfessor){

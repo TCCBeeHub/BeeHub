@@ -1,5 +1,6 @@
 package com.beehub.entity;
 
+import com.beehub.enums.StatusTcc;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,6 +34,9 @@ public class Tcc {
     private String linkSlide;
 
     private LocalDate dataCriacao;
+
+    @Enumerated(EnumType.STRING)
+    private StatusTcc status = StatusTcc.EM_ANDAMENTO;
 
     @OneToOne
     @JoinColumn(name = "id_grupo", unique = true, nullable = false)

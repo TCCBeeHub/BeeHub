@@ -1,5 +1,9 @@
 package com.beehub.security;
 
+import com.beehub.entity.Aluno;
+import com.beehub.entity.Grupo;
+import com.beehub.exceptions.AlunoNaoPertenceAoGrupoException;
+import com.beehub.exceptions.UsuarioNaoEncontradoException;
 import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.ProfessorRepository;
@@ -18,6 +22,15 @@ public class UsuarioValidator {
         this.alunoRepository = alunoRepository;
         this.professorRepository = professorRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    public void validarAlunoGrupo(Grupo grupo, Long rmAluno){
+        Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
+
+        if(aluno.getGrupo() == null || !aluno.getGrupo().getIdGrupo().equals(grupo.getIdGrupo())){
+            throw new AlunoNaoPertenceAoGrupoException("Este aluno não pertence a este grupo!");
+        }
     }
 
     public void validarRm(Long rm){
