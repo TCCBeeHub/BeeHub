@@ -1,5 +1,7 @@
 package com.beehub.dto.response;
 
+import com.beehub.entity.Tcc;
+
 public record TccResponseDTO(
     Long codTcc,
     String nomeGrupo,
@@ -9,4 +11,17 @@ public record TccResponseDTO(
     String linkArtigo,
     String linkSite,
     String linkSlide
-) {}
+) {
+    public TccResponseDTO(Tcc tcc){
+        this(
+                tcc.getCodTcc(),
+                tcc.getGrupo().getNomeGrupo(),
+                tcc.getTema(),
+                tcc.getDescricao(),
+                tcc.getLinkFoto(),
+                tcc.getLinkArtigo(),
+                tcc.getLinkSite(),
+                tcc.getLinkSlide()
+        );
+    }
+}

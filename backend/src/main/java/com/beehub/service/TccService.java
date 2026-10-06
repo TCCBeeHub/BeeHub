@@ -2,9 +2,11 @@ package com.beehub.service;
 
 import com.beehub.dto.comum.TccResumoDTO;
 import com.beehub.dto.request.TccRequestDTO;
+import com.beehub.dto.response.TccResponseDTO;
 import com.beehub.dto.update.TccRequestAtualizarDTO;
 import com.beehub.entity.Grupo;
 import com.beehub.entity.Tcc;
+import com.beehub.enums.StatusTcc;
 import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.GrupoRepository;
@@ -12,6 +14,7 @@ import com.beehub.repository.TccRepository;
 import com.beehub.security.UsuarioValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 import java.time.LocalDate;
 
@@ -53,6 +56,7 @@ public class TccService {
         novoTcc.setTema(temaNormalizado);
         novoTcc.setDescricao(descricao);
         novoTcc.setDataCriacao(LocalDate.now());
+        novoTcc.setStatus(StatusTcc.EM_ANDAMENTO);
         novoTcc.setGrupo(grupo);
 
         Tcc salvarTcc = tccRepository.save(novoTcc);
@@ -99,5 +103,26 @@ public class TccService {
 
         Tcc salvarTcc = tccRepository.save(atualizarTcc);
 
+    }
+
+    @Transactional(readOnly = true)
+    public TccResponseDTO listarTcc(long codTcc){
+        Tcc tcc = TccRepository.findById(codTcc)
+                .orElseThrow(()-> new TccNaoEncontradoException("TCC não encontrado!"));
+        return  new TccResponseDTO(tcc);
+    }
+
+    @Transactional(readOnly = true)
+    public TccResponseDTO listarTccDoGrupo(long idGrupo){
+        Tcc tcc = TccRepository.findById_IdGrupo(idGrupo)
+                .orElseThrow(() -> new TccNaoEncontradoException("O TCC do grupo não foi encontrado!"));
+        return  new TccResponseDTO(tcc);
+    }
+
+    public List<TccResumoDTO> listarTccsPublicos() {
+        return tccRepository.findAllByStatus(StatusTcc.PUBLICADO)
+                .stream()
+                .map(TccResumoDTO::new)
+                .toList();
     }
 }
