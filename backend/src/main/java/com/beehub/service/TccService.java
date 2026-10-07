@@ -15,6 +15,7 @@ import com.beehub.security.UsuarioValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import com.beehub.security.SessaoValidator;
 
 import java.time.LocalDate;
 
@@ -24,6 +25,7 @@ public class TccService {
     private final GrupoRepository grupoRepository;
     private final TccRepository tccRepository;
     private final UsuarioValidator usuarioValidator;
+    private final SessaoValidator sessaoValidator;
 
     public TccService(AlunoRepository alunoRepository, GrupoRepository grupoRepository,
                       TccRepository tccRepository, UsuarioValidator usuarioValidator){
@@ -124,5 +126,61 @@ public class TccService {
                 .stream()
                 .map(TccResumoDTO::new)
                 .toList();
+    }
+
+    @Transactional
+    public void aprovarTcc(Long codTcc, Long rmProfessor){
+        usuarioValidator.valiadarPro
+
+        Tcc tcc = TccRepository.findById(codTcc)
+                .orElseThrow(() -> new TccNaoEncontradoException("TCC não encontrado!"));
+
+        tcc.setStatus(StatusTcc.APROVADO);
+        TccRepository.save(tcc);
+    }
+
+    @Transactional
+    public void reaprovarTcc(Long codTcc, Long rmProfessor){
+
+
+        Tcc tcc = TccRepository.findById(codTcc)
+                .orElseThrow(() -> TccNaoEncontradoException("Tcc não encontrado!"));
+
+        tcc.setStatus(StatusTcc.REPROVADO);
+        TccRepository.save(tcc);
+    }
+
+    @Transactional
+    public void publicarTcc(Long codTcc, Long rmAluno){
+        usuarioValidator.validarRm(rmAluno);
+
+        Tcc tcc = TccRepository.findById(codTcc)
+                .orElseThrow(() -> new TccNaoEncontradoException("TCC não encontrado!"));
+
+        if (tcc.getStatus() != StatusTcc.APROVADO) {
+            throw new TccNaoAprovadoException("Somente TCCs aprovados podem ser publicados!");
+        }
+
+        tcc.setStatus(StatusTcc.PUBLICADO);
+        TccRepository.save(tcc);
+    }
+
+    @Transactional
+    public void excluirTcc(Long codTcc, Long rmProfessor, boolean isProfessor, Long rmAluno) {
+        Tcc tcc = TccRepository.findById(codTcc)
+                .orElseThrow(() -> new TccNaoEncontradoException("TCC não encontrado!"));
+
+        if (isProfessor) {
+            usuarioValidator.validarRm(rmProfessor);
+        } else {
+            // Se for aluno, valida se faz parte do grupo e se o TCC ainda não foi finalizado
+            usuarioValidator.validarAlunoGrupo(tcc.getGrupo(), rmAluno);
+
+            if (tcc.getStatus() == StatusTcc.PUBLICADO || tcc.getStatus() == StatusTcc.APROVADO) {
+                throw new RegraNegocioException("Não é possível excluir um TCC que já foi aprovado ou publicado!");
+            }
+        }
+
+        TccRepository.delete(tcc);
     }
 }
