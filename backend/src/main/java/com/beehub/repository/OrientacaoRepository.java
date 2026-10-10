@@ -13,5 +13,5 @@ public interface OrientacaoRepository extends JpaRepository<Orientacao, Long> {
     List<Orientacao> findAllByCurso_IdCurso(Long idCurso);
     List<Orientacao> findAllByProfessor_RmProfessor(Long rmProfessor);
     Optional<Orientacao> findByProfessor_RmProfessorAndCurso_IdCurso(Long rmProfessor, Long idCurso);
-    Optional<Orientacao> findOrientacaoByIdOrientacao(Long idOrientacao);
+    Optional<Orientacao> findByIdOrientacao(Long idOrientacao);
 }

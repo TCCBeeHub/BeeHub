@@ -45,7 +45,7 @@ public class GrupoService {
     public GrupoResumoDTO cadastrarGrupo(GrupoRequestDTO dto, Long rmProfessor){
         String nomeNormalizado = dto.nomeGrupo().trim();
 
-        Orientacao buscarOrientacao = orientacaoRepository.findOrientacaoByIdOrientacao(dto.idOrientacao())
+        Orientacao buscarOrientacao = orientacaoRepository.findByIdOrientacao(dto.idOrientacao())
                 .orElseThrow(() -> new OrientacaoNaoEncontradaException("Não existe uma orientação com esse ID."));
 
         validarProfessorOrientacao(buscarOrientacao, rmProfessor);

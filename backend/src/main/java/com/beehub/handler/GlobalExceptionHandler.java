@@ -9,11 +9,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     /*
-    * Handler Global das exceptions, onde subclasses que herdam de alguma das exceptions abaixo
-    * são tratadas aqui mantendo sua prioridade.
-    *
-    * Objetivo: Manter um código limpo apenas passando a mensagem o status HTTP
-    * */
+     * Handler Global das exceptions, onde subclasses que herdam de alguma das exceptions abaixo
+     * são tratadas aqui mantendo sua prioridade.
+     *
+     * Objetivo: Manter um código limpo apenas passando a mensagem o status HTTP
+     * */
     @ExceptionHandler(UsuarioOuSenhaIncorretaException.class)
     public ResponseEntity<String> handleUsuarioOuSenhaInvalidos(UsuarioOuSenhaIncorretaException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
@@ -21,6 +21,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AcessoNaoPermitidoException.class)
     public ResponseEntity<String> handleAcessoNaoPermitido(AcessoNaoPermitidoException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(RecursoNaoPermitidoException.class)
+    public ResponseEntity<String> handleAcessoNaoPermitido(RecursoNaoPermitidoException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 

@@ -2,9 +2,8 @@ package com.beehub.security;
 
 import com.beehub.entity.Aluno;
 import com.beehub.entity.Grupo;
-import com.beehub.exceptions.AlunoNaoPertenceAoGrupoException;
-import com.beehub.exceptions.UsuarioNaoEncontradoException;
-import com.beehub.exceptions.UsuarioOuSenhaIncorretaException;
+import com.beehub.entity.Professor;
+import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.ProfessorRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +29,28 @@ public class UsuarioValidator {
 
         if(aluno.getGrupo() == null || !aluno.getGrupo().getIdGrupo().equals(grupo.getIdGrupo())){
             throw new AlunoNaoPertenceAoGrupoException("Este aluno não pertence a este grupo!");
+        }
+    }
+
+    public void validarProfessorGrupo(Grupo grupo, Long rmProfessor){
+        if(!grupo.getOrientacao().getProfessor().getRmProfessor().equals(rmProfessor)){
+            throw new OrientadorInvalidoException("Você não orienta este grupo!");
+        }
+    }
+
+    public void validarAcessoAoTcc(Grupo grupo, Long rmUsuario) {
+        Aluno buscarAluno = alunoRepository.findByRmAluno(rmUsuario).orElse(null);
+
+        if (buscarAluno != null) {
+            validarAlunoGrupo(grupo, rmUsuario);
+        }
+
+        Professor buscarProfessor = professorRepository.findByRmProfessor(rmUsuario).orElse(null);
+
+        if (buscarProfessor != null) {
+            validarProfessorGrupo(grupo, rmUsuario);
+        } else {
+            throw new AcessoNaoPermitidoException("Você não tem permissão para fazer isto!");
         }
     }
 

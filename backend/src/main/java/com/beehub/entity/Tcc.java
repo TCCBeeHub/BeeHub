@@ -25,8 +25,6 @@ public class Tcc {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String descricao;
 
-    private String linkFoto;
-
     private String linkArtigo;
 
     private String linkSite;
