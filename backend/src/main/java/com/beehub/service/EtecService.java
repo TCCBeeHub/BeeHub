@@ -1,7 +1,9 @@
 package com.beehub.service;
 
+import com.beehub.dto.comum.CursoResumoDTO;
 import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.dto.request.EtecRequestDTO;
+import com.beehub.dto.response.EtecResponseDTO;
 import com.beehub.dto.update.EtecRequestAtualizarDTO;
 import com.beehub.entity.Etec;
 import com.beehub.exceptions.*;
@@ -19,6 +21,7 @@ public class EtecService {
         this.etecRepository = etecRepository;
     }
 
+    @Transactional
     public EtecResumoDTO cadastrarEtec(EtecRequestDTO dto){
         String codEtec = dto.codEtec().trim();
         String nomeEtec = dto.nome().trim();
@@ -39,9 +42,10 @@ public class EtecService {
         );
     }
 
+    @Transactional
     public EtecResumoDTO atualizarEtec(String codEtec, EtecRequestAtualizarDTO dto){
         Etec atualizarNomeEtec = etecRepository.findEtecByCodEtec(codEtec)
-                .orElseThrow(() -> new EtecNaoEncontradaException("A Etec solicitada não existe!"));
+                .orElseThrow(EtecNaoEncontradaException::new);
 
         String novoNome = dto.nome().trim();
 
@@ -59,10 +63,39 @@ public class EtecService {
         );
     }
 
+    @Transactional(readOnly = true)
     public EtecResumoDTO listarEtec(String codEtec){
-        return etecRepository.findResumoByCodEtec(codEtec).orElseThrow(() -> new EtecNaoEncontradaException("Etec não encontrada!"));
+        Etec etec = etecRepository.findEtecByCodEtec(codEtec)
+                .orElseThrow(EtecNaoEncontradaException::new);
+
+        return new EtecResumoDTO(
+                etec.getCodEtec(),
+                etec.getNome()
+        );
     }
 
+    @Transactional(readOnly = true)
+    public EtecResponseDTO listarEtecComCursos(String codEtec){
+        Etec buscarEtec = etecRepository.findEtecByCodEtec(codEtec)
+                .orElseThrow(EtecNaoEncontradaException::new);
+
+        List<CursoResumoDTO> cursos = buscarEtec.getCursos().stream()
+                .map(c -> new CursoResumoDTO(
+                        c.getIdCurso(),
+                        c.getEtec().getCodEtec(),
+                        c.getNome(),
+                        c.getPeriodo()
+                ))
+                .toList();
+
+        return new EtecResponseDTO(
+                buscarEtec.getCodEtec(),
+                buscarEtec.getNome(),
+                cursos
+        );
+    }
+
+    @Transactional(readOnly = true)
     public List<EtecResumoDTO> listarEtecs(){
         List<Etec> etecs = etecRepository.findAll();
 
@@ -74,7 +107,7 @@ public class EtecService {
     @Transactional
     public void excluirEtec(String codEtec){
         Etec deletarEtec = etecRepository.findEtecByCodEtec(codEtec)
-                .orElseThrow(() -> new EtecNaoEncontradaException("A Etec solicitada não existe!"));
+                .orElseThrow(EtecNaoEncontradaException::new);
 
         if(!deletarEtec.getCursos().isEmpty()){
             throw new RecursoNaoPermitidoException("Uma Etec não pode ser excluída contendo cursos!");

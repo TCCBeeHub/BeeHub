@@ -37,7 +37,7 @@ public class CursoService {
         String periodoCurso = dto.periodo().trim();
 
         Etec etec = etecRepository.findEtecByCodEtec(codEtec)
-                .orElseThrow(() -> new EtecNaoEncontradaException("ETEC não encontrada!"));
+                .orElseThrow(EtecNaoEncontradaException::new);
 
         validarCurso(new CursoRequestDTO(
                 codEtec,
@@ -153,7 +153,7 @@ public class CursoService {
         boolean existsCodEtec = etecRepository.existsByCodEtec(codEtec.trim());
 
         if(!existsCodEtec){
-            throw new EtecNaoEncontradaException("A etec requerida não existe!");
+            throw new EtecNaoEncontradaException();
         }
     }
 }

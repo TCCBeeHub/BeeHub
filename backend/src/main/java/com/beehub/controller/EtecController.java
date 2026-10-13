@@ -2,8 +2,8 @@ package com.beehub.controller;
 
 import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.dto.request.EtecRequestDTO;
+import com.beehub.dto.response.EtecResponseDTO;
 import com.beehub.dto.update.EtecRequestAtualizarDTO;
-import com.beehub.exceptions.AcessoNaoPermitidoException;
 import com.beehub.security.SessaoValidator;
 import com.beehub.service.EtecService;
 import jakarta.servlet.http.HttpSession;
@@ -45,6 +45,12 @@ public class EtecController {
     @ResponseStatus(HttpStatus.OK)
     public EtecResumoDTO listarEtec(@PathVariable String codEtec){
         return etecService.listarEtec(codEtec);
+    }
+
+    @GetMapping("/{codEtec}/detalhes")
+    @ResponseStatus(HttpStatus.OK)
+    public EtecResponseDTO listarEtecComCursos(@PathVariable String codEtec){
+        return etecService.listarEtecComCursos(codEtec);
     }
 
     @GetMapping
