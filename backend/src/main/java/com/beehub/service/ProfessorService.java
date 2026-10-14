@@ -159,7 +159,7 @@ public class ProfessorService {
                 .map(o -> new OrientacaoResponseDTO(
                         o.getCurso().getNome(),
                         o.getCurso().getEtec().getNome(),
-                        o.getGrupoOrientacao()
+                        o.getTurma()
                 ))
                 .toList();
 

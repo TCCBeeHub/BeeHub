@@ -4,7 +4,6 @@ import com.beehub.dto.comum.CursoResumoDTO;
 import com.beehub.dto.request.CursoRequestDTO;
 import com.beehub.dto.response.CursoResponseDTO;
 import com.beehub.dto.update.CursoRequestAtualizarDTO;
-import com.beehub.exceptions.AcessoNaoPermitidoException;
 import com.beehub.security.SessaoValidator;
 import com.beehub.service.CursoService;
 import jakarta.servlet.http.HttpSession;

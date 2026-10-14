@@ -36,7 +36,7 @@ public class OrientacaoService {
         Curso buscarCurso = cursoRepository.findCursoByIdCurso(dto.idCurso())
                 .orElseThrow(() -> new CursoNaoEncontradoException("Curso não encontrado!"));
 
-        if(orientacaoRepository.existsByCurso_IdCursoAndGrupoOrientacao(dto.idCurso(), dto.grupo())){
+        if(orientacaoRepository.existsByCurso_IdCursoAndTurma(dto.idCurso(), dto.turma())){
             throw new OrientacaoJaEncontradaException("Este grupo já está sendo orientado.");
         }
 
@@ -47,14 +47,14 @@ public class OrientacaoService {
         Orientacao novaOrientacao = new Orientacao();
         novaOrientacao.setCurso(buscarCurso);
         novaOrientacao.setProfessor(encontrarProfessor);
-        novaOrientacao.setGrupoOrientacao(dto.grupo());
+        novaOrientacao.setTurma(dto.turma());
 
         Orientacao salvarOrientacao = orientacaoRepository.save(novaOrientacao);
 
         return new OrientacaoResponseDTO(
                 salvarOrientacao.getCurso().getNome(),
                 salvarOrientacao.getCurso().getEtec().getNome(),
-                salvarOrientacao.getGrupoOrientacao()
+                salvarOrientacao.getTurma()
         );
     }
 
@@ -70,7 +70,7 @@ public class OrientacaoService {
                 .map(orientacao -> new OrientacaoResponseDTO(
                         orientacao.getCurso().getNome(),
                         orientacao.getCurso().getEtec().getNome(),
-                        orientacao.getGrupoOrientacao()
+                        orientacao.getTurma()
                 ))
                 .collect(Collectors.toList());
     }

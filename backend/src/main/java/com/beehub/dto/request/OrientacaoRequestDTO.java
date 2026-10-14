@@ -11,6 +11,6 @@ public record OrientacaoRequestDTO(
         Long rmProfessor,
 
         @NotNull
-        GrupoOrientacao grupo
+        GrupoOrientacao turma
 ) {
 }

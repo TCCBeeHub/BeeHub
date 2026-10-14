@@ -8,8 +8,10 @@ import com.beehub.dto.request.AlunoLoginRequestDTO;
 import com.beehub.dto.request.AlunoRequestDTO;
 import com.beehub.dto.response.AlunoResponseDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarDTO;
+import com.beehub.dto.update.AlunoRequestAtualizarTurmaDTO;
 import com.beehub.entity.Aluno;
 import com.beehub.entity.Curso;
+import com.beehub.enums.GrupoOrientacao;
 import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.CursoRepository;
@@ -51,6 +53,7 @@ public class AlunoService {
         novoAluno.setRmAluno(dto.rmAluno());
         novoAluno.setNome(dto.nome().trim());
         novoAluno.setSenha(passwordEncoder.encode(dto.senha()));
+        novoAluno.setTurma(dto.turma());
         novoAluno.setLinkFoto(null);
 
         Aluno salvarAluno = alunoRepository.save(novoAluno);
@@ -58,6 +61,7 @@ public class AlunoService {
         return new AlunoResumoDTO(
                 salvarAluno.getRmAluno(),
                 salvarAluno.getNome(),
+                salvarAluno.getTurma(),
                 new CursoUsuarioResumoDTO(
                         curso.getIdCurso(),
                         curso.getNome(),
@@ -138,11 +142,22 @@ public class AlunoService {
         return new AlunoResponseDTO(
                 alunoAtualizado.getRmAluno(),
                 alunoAtualizado.getNome(),
+                alunoAtualizado.getTurma(),
                 alunoAtualizado.getEmail(),
                 alunoAtualizado.getDescricao(),
                 alunoAtualizado.getCurso().getNome(),
                 alunoAtualizado.getLinkFoto()
         );
+    }
+
+    @Transactional
+    public void atualizarTurmaAluno(AlunoRequestAtualizarTurmaDTO dto, Long rmAluno){
+        Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
+                .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
+
+        aluno.setTurma(dto.turma());
+
+        alunoRepository.save(aluno);
     }
 
     @Transactional(readOnly = true)
@@ -164,6 +179,24 @@ public class AlunoService {
     }
 
     @Transactional(readOnly = true)
+    public List<UsuarioResumoDTO> listarAlunosPorTurma(Long idCurso, GrupoOrientacao turma){
+
+        if(!cursoRepository.existsById(idCurso)){
+            throw new CursoNaoEncontradoException();
+        }
+
+        List<Aluno> alunos = alunoRepository.findAllByCurso_IdCursoAndTurma(idCurso, turma);
+
+        return alunos.stream()
+                .map(aluno -> new UsuarioResumoDTO(
+                        aluno.getRmAluno(),
+                        aluno.getNome(),
+                        aluno.getLinkFoto()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public AlunoResumoDTO listarAluno(Long rmAluno){
         Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
@@ -173,6 +206,7 @@ public class AlunoService {
         return new AlunoResumoDTO(
                 aluno.getRmAluno(),
                 aluno.getNome(),
+                aluno.getTurma(),
                 new CursoUsuarioResumoDTO(
                         cursoAluno.getIdCurso(),
                         cursoAluno.getNome(),

@@ -38,7 +38,7 @@ public class SessaoValidator {
     }
 
     public Long validarAlunoLogado(HttpSession session){
-        Long alunoRM = (Long) session.getAttribute(PROFESSOR);
+        Long alunoRM = (Long) session.getAttribute(ALUNO);
 
         if(session.getAttribute(ALUNO) == null){
             throw new AcessoNaoPermitidoException("É necessário realizar o login!");
@@ -69,11 +69,18 @@ public class SessaoValidator {
         }
     }
 
+    public void validarAdminOuProfessor(HttpSession session){
+        if(session.getAttribute(ADMINISTRADOR) == null
+        && session.getAttribute(PROFESSOR) == null){
+            throw new AcessoNaoPermitidoException("Acesso restrito a professores/coordenação!");
+        }
+    }
+
     public void validarAcessoInterno(HttpSession session){
         if(session.getAttribute(ADMINISTRADOR) == null
         && session.getAttribute(ALUNO) == null
         && session.getAttribute(PROFESSOR) == null){
-            throw new AcessoNaoPermitidoException("Acesso restrito a alunos/professores/coordenação");
+            throw new AcessoNaoPermitidoException("Acesso restrito a alunos/professores/coordenação!");
         }
     }
 }

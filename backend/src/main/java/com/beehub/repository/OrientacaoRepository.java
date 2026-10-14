@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrientacaoRepository extends JpaRepository<Orientacao, Long> {
-    boolean existsByCurso_IdCursoAndGrupoOrientacao(Long idCurso, GrupoOrientacao grupoOrientacao);
+    boolean existsByCurso_IdCursoAndTurma(Long idCurso, GrupoOrientacao turma);
     boolean existsByProfessor_RmProfessorAndCurso_IdCurso(Long rmProfessor, Long idCurso);
     List<Orientacao> findAllByCurso_IdCurso(Long idCurso);
     List<Orientacao> findAllByProfessor_RmProfessor(Long rmProfessor);

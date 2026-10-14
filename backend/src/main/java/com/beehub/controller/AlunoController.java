@@ -1,5 +1,7 @@
 package com.beehub.controller;
 
+import com.beehub.dto.update.AlunoRequestAtualizarTurmaDTO;
+import com.beehub.enums.GrupoOrientacao;
 import com.beehub.security.SessaoValidator;
 import com.beehub.dto.comum.AlunoResumoDTO;
 import com.beehub.dto.comum.UsuarioResumoDTO;
@@ -56,6 +58,15 @@ public class AlunoController {
         return alunoService.atualizarAluno(dto, rmAluno);
     }
 
+    @PutMapping("/{rmAluno}/turma")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void atualizarTurmaAluno(@PathVariable Long rmAluno,
+                                    @Valid @RequestBody AlunoRequestAtualizarTurmaDTO dto,
+                                    HttpSession session){
+        sessaoValidator.validarAdmin(session);
+        alunoService.atualizarTurmaAluno(dto, rmAluno);
+    }
+
     @GetMapping("/curso/{idCurso}")
     @ResponseStatus(HttpStatus.OK)
     public List<UsuarioResumoDTO> listarAlunos(@PathVariable Long idCurso,
@@ -64,6 +75,15 @@ public class AlunoController {
         sessaoValidator.validarAcessoInterno(session);
 
         return alunoService.listarAlunos(idCurso);
+    }
+
+    @GetMapping("/curso/{idCurso}/{turma}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<UsuarioResumoDTO> listarAlunosPorTurma(@PathVariable Long idCurso,
+                                                       @PathVariable GrupoOrientacao turma,
+                                                       HttpSession session){
+        sessaoValidator.validarAdminOuProfessor(session);
+        return alunoService.listarAlunosPorTurma(idCurso, turma);
     }
 
     @GetMapping("/{rmAluno}")

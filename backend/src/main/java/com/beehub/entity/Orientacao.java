@@ -12,7 +12,7 @@ import java.util.List;
 @Table(name = "orientacao",
     uniqueConstraints = {
         @UniqueConstraint(columnNames = {"rmProfessor", "idCurso"}),
-        @UniqueConstraint(columnNames = {"idCurso", "grupoOrientacao"})
+        @UniqueConstraint(columnNames = {"idCurso", "turma"})
     }
 )
 @Getter
@@ -36,5 +36,5 @@ public class Orientacao {
     private List<Grupo> grupos;
 
     @Enumerated(EnumType.STRING)
-    private GrupoOrientacao grupoOrientacao;
+    private GrupoOrientacao turma;
 }

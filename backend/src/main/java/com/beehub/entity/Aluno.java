@@ -1,6 +1,7 @@
 package com.beehub.entity;
 
 
+import com.beehub.enums.GrupoOrientacao;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,10 @@ public class Aluno {
 
     @Column(columnDefinition = "TEXT")
     private String descricao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private GrupoOrientacao turma;
 
     @ManyToOne
     @JoinColumn(name = "idCurso")

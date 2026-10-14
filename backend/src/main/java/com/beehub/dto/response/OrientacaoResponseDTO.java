@@ -5,5 +5,5 @@ import com.beehub.enums.GrupoOrientacao;
 public record OrientacaoResponseDTO(
         String nomeCurso,
         String nomeEtec,
-        GrupoOrientacao grupoOrientacao
+        GrupoOrientacao turma
 ) {}

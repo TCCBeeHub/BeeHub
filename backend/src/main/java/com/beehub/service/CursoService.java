@@ -39,11 +39,7 @@ public class CursoService {
         Etec etec = etecRepository.findEtecByCodEtec(codEtec)
                 .orElseThrow(EtecNaoEncontradaException::new);
 
-        validarCurso(new CursoRequestDTO(
-                codEtec,
-                nomeCurso,
-                periodoCurso
-        ));
+        validarCurso(dto);
 
         Curso novoCurso = new Curso();
 
@@ -75,7 +71,7 @@ public class CursoService {
 
         if(cursoRepository.existsByNomeAndEtec_CodEtecAndIdCursoNotAndPeriodo
                 (novoNome, codEtecNormalizado, idCurso, novoPeriodo)){
-            throw new CursoJaEncontradoException("Já existe um curso com este nome na etec " + atualizarInfoCurso.getEtec().getCodEtec());
+            throw new CursoJaEncontradoException("Já existe um curso com este nome na Etec " + atualizarInfoCurso.getEtec().getCodEtec() + "!");
         }
 
         atualizarInfoCurso.setNome(novoNome);
@@ -97,7 +93,7 @@ public class CursoService {
         validarCodEtec(codEtecNormalizado);
 
         Curso curso = cursoRepository.findCursoByIdCursoAndEtec_CodEtec(idCurso, codEtecNormalizado)
-                .orElseThrow(() -> new CursoNaoEncontradoException("O id deste curso não foi encontrado nesta etec."));
+                .orElseThrow(() -> new CursoNaoEncontradoException("O ID deste curso não foi encontrado nesta etec."));
 
         return new CursoResponseDTO(
                 curso.getIdCurso(),
@@ -144,8 +140,12 @@ public class CursoService {
     }
 
     private void validarCurso(CursoRequestDTO dto) {
-        if (cursoRepository.existsByNomeAndEtec_CodEtecAndPeriodo(dto.nome(), dto.codEtec(), dto.periodo())) {
-            throw new RecursoJaEncontradoException("Esse curso já existe nesta Etec");
+        String nome = dto.nome().trim();
+        String codEtec = dto.codEtec().trim();
+        String periodo = dto.periodo().trim();
+
+        if (cursoRepository.existsByNomeAndEtec_CodEtecAndPeriodo(nome, codEtec, periodo)) {
+            throw new CursoJaEncontradoException("Esse curso já existe nesta Etec!");
         }
     }
 

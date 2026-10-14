@@ -1,5 +1,6 @@
 package com.beehub.dto.request;
 
+import com.beehub.enums.GrupoOrientacao;
 import jakarta.validation.constraints.*;
 
 public record AlunoRequestDTO(
@@ -13,5 +14,8 @@ public record AlunoRequestDTO(
 
     @NotBlank(message = "A senha é obrigatória")
     @Size(min=6, max = 20, message = "A senha deve conter entre 6 a 20 caracteres")
-    String senha
+    String senha,
+
+    @NotNull
+    GrupoOrientacao turma
 ) {}
