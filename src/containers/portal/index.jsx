@@ -184,9 +184,9 @@ const STATUS_LABELS = {
 
 const EDITABLE_FIELDS = {
   aluno: {
-    alunos: ["email", "linkFoto", "descricao", "turma"],
+    alunos: ["email", "linkFoto", "descricao"],
     grupos: ["nomeGrupo", "linkFoto", "ano", "capacidadeMaxima"],
-    tccs: ["tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite"],
+    tccs: ["tema", "linkSlide", "linkArtigo", "descricao", "linkSite"],
   },
   professor: {
     professores: ["email", "linkFoto", "descricao"],
@@ -385,6 +385,21 @@ function validateRecord(collection, record, data, editingKey) {
   ) {
     return "Selecione um curso e um professor cadastrados.";
   }
+  if (collection === "orientacoes") {
+    const affectedGroups = data.grupos.filter(
+      (item) => item.idOrientacao === Number(record.idOrientacao),
+    );
+    const courseMismatch = affectedGroups.some((group) => {
+      const courseId = Number(record.idCurso);
+      return data.alunos.some(
+        (student) =>
+          student.idGrupo === group.idGrupo && student.idCurso !== courseId,
+      );
+    });
+    if (courseMismatch) {
+      return "O curso da orientação deve continuar compatível com os alunos vinculados aos grupos.";
+    }
+  }
   if (
     collection === "grupos" &&
     !data.orientacoes.some(
@@ -431,6 +446,17 @@ function validateRecord(collection, record, data, editingKey) {
     }
   }
   if (collection === "grupos") {
+    const orientation = data.orientacoes.find(
+      (item) => item.idOrientacao === Number(record.idOrientacao),
+    );
+    const studentCourseMismatch = data.alunos.some(
+      (student) =>
+        student.idGrupo === Number(record.idGrupo) &&
+        student.idCurso !== orientation?.idCurso,
+    );
+    if (studentCourseMismatch) {
+      return "A orientação do grupo deve corresponder ao curso dos alunos vinculados.";
+    }
     const count = data.alunos.filter(
       (item) => item.idGrupo === Number(record.idGrupo),
     ).length;
@@ -472,7 +498,6 @@ function canEdit(role, collection, record, user, data) {
 
 function canCreate(role, collection, data, user) {
   if (role === "administrador") return true;
-  if (role === "professor" && collection === "orientacoes") return true;
   if (collection !== "tccs" || !["aluno", "professor"].includes(role)) return false;
   const groupIds =
     role === "aluno"
@@ -506,16 +531,16 @@ function editableFields(role, collection, config) {
 function formatValue(collection, field, value, data) {
   if (value === null || value === undefined || value === "") return "—";
   if (field === "status") return STATUS_LABELS[value] || value;
-  if (field === "idCurso") {
+  if (field === "idCurso" && collection !== "cursos") {
     return data.cursos.find((item) => item.idCurso === Number(value))?.nome || value;
   }
-  if (field === "codEtec") {
+  if (field === "codEtec" && collection === "cursos") {
     return data.etecs.find((item) => item.codEtec === value)?.nome || value;
   }
-  if (field === "idGrupo") {
+  if (field === "idGrupo" && collection !== "grupos") {
     return data.grupos.find((item) => item.idGrupo === Number(value))?.nomeGrupo || value;
   }
-  if (field === "idOrientacao") {
+  if (field === "idOrientacao" && collection === "grupos") {
     const orientation = data.orientacoes.find(
       (item) => item.idOrientacao === Number(value),
     );
@@ -735,9 +760,6 @@ export function PortalApp() {
         );
         if (assignedGroups.length === 1) draft.idGrupo = assignedGroups[0].idGrupo;
       }
-    }
-    if (!record && targetCollection === "orientacoes" && role === "professor") {
-      draft.rmProfessor = user?.rmProfessor || "";
     }
     setDialog({
       type: "form",
@@ -1283,6 +1305,10 @@ function ResourcePage({
   detailOnly = false,
 }) {
   const config = COLLECTION_CONFIG[collection];
+  const columns =
+    role === "visitante" && collection === "tccs"
+      ? ["tema", "status", "dataCriacao"]
+      : config.columns;
   const ownRows = useMemo(() => {
     const value = search.trim().toLocaleLowerCase("pt-BR");
     if (!value) return rows;
@@ -1331,7 +1357,11 @@ function ResourcePage({
     <>
       <PageHeading
         eyebrow={role === "administrador" ? "GESTÃO DE CADASTROS" : ROLE_LABELS[role].toUpperCase()}
-        title={config.label}
+        title={
+          role !== "administrador" && ["alunos", "professores"].includes(collection)
+            ? "Meu perfil"
+            : config.label
+        }
         description={description}
         action={
           canAdd ? (
@@ -1354,7 +1384,7 @@ function ResourcePage({
             <table>
               <thead>
                 <tr>
-                  {config.columns.map((field) => <th key={field}>{FIELD_LABELS[field]}</th>)}
+                  {columns.map((field) => <th key={field}>{FIELD_LABELS[field]}</th>)}
                   <th className="actions-heading">Ações</th>
                 </tr>
               </thead>
@@ -1363,7 +1393,7 @@ function ResourcePage({
                   const mayEdit = canEdit(role, collection, record, user, data);
                   return (
                     <tr key={record[config.key]}>
-                      {config.columns.map((field) => (
+                      {columns.map((field) => (
                         <td key={field}>
                           {field === "status" ? (
                             <span className={`status-pill status-${record.status.toLowerCase()}`}>
@@ -1469,15 +1499,13 @@ function EntityForm({
     ? editableFields(role, collection, config)
     : role === "administrador"
       ? editableFields(role, collection, config)
-      : collection === "orientacoes" && role === "professor"
-        ? ["idCurso", "turma"]
-        : collection === "tccs"
+      : collection === "tccs"
         ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
-          : [];
+        : [];
   const fields = config.fields.filter(
     (field) =>
       allowedFields.includes(field) ||
-    (!editing && field === key && ["administrador", "professor"].includes(role) && collection === "orientacoes"),
+    (!editing && field === key && role === "administrador"),
   );
 
   const getFieldType = (field) => {
