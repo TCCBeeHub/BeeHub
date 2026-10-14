@@ -8,7 +8,11 @@ function readStoredAuth() {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return { role: null, userName: "" };
     const parsed = JSON.parse(raw);
-    if (!["aluno", "professor", "visitante"].includes(parsed.role))
+    if (
+      !["administrador", "aluno", "professor", "visitante"].includes(
+        parsed.role,
+      )
+    )
       return { role: null, userName: "" };
     return { role: parsed.role, userName: parsed.userName || "" };
   } catch {

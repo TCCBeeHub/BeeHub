@@ -15,12 +15,8 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     font-family: ${({ theme }) => theme.font.body};
-    color: ${({ theme }) => theme.colors.textPrimary};
-    background: ${({ theme }) => theme.colors.bgVoid};
-    background-image:
-      radial-gradient(600px circle at 0% 0%, rgba(139, 92, 246, 0.10), transparent 60%),
-      radial-gradient(800px circle at 100% 20%, rgba(109, 40, 217, 0.08), transparent 55%);
-    background-attachment: fixed;
+    color: #282331;
+    background: #f7f6f3;
     -webkit-font-smoothing: antialiased;
   }
 
