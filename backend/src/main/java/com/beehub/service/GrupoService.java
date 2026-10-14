@@ -7,14 +7,13 @@ import com.beehub.dto.update.GrupoRequestAtualizarDTO;
 import com.beehub.entity.Aluno;
 import com.beehub.entity.Grupo;
 import com.beehub.entity.Orientacao;
+import com.beehub.enums.StatusTcc;
 import com.beehub.exceptions.*;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.GrupoRepository;
 import com.beehub.repository.OrientacaoRepository;
 import com.beehub.repository.ProfessorRepository;
-import com.beehub.security.SessaoValidator;
 import com.beehub.security.UsuarioValidator;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,11 +68,11 @@ public class GrupoService {
         Grupo salvarGrupo = grupoRepository.save(novoGrupo);
 
         return new GrupoResumoDTO(
-          salvarGrupo.getIdGrupo(),
-          salvarGrupo.getLinkFoto(),
-          salvarGrupo.getNomeGrupo(),
-          salvarGrupo.getOrientacao().getProfessor().getNome(),
-          salvarGrupo.getAno()
+                salvarGrupo.getIdGrupo(),
+                salvarGrupo.getLinkFoto(),
+                salvarGrupo.getNomeGrupo(),
+                salvarGrupo.getOrientacao().getProfessor().getNome(),
+                salvarGrupo.getAno()
         );
     }
 
@@ -82,6 +81,10 @@ public class GrupoService {
                                            Long rmAluno){
         Grupo atualizarGrupo = grupoRepository.findByIdGrupo(idGrupo)
                 .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
+
+        if(atualizarGrupo.getTcc() != null && atualizarGrupo.getTcc().getStatus() == StatusTcc.PUBLICADO){
+            throw new TccJaFoiPublicadoException("Este TCC já foi publicado!");
+        }
 
         usuarioValidator.validarAlunoGrupo(atualizarGrupo, rmAluno);
 
@@ -155,7 +158,7 @@ public class GrupoService {
     @Transactional
     public void removerAluno(Long rmAluno, Long idGrupo, Long rmProfessor){
         Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
-                        .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado"));
+                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado"));
 
         validarProfessorGrupo(grupo, rmProfessor);
 

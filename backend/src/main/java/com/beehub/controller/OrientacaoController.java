@@ -32,8 +32,7 @@ public class OrientacaoController {
     @ResponseStatus(HttpStatus.OK)
     public List<OrientacaoResponseDTO> listarOrientacoes(@PathVariable Long rmProfessor,
                                                          HttpSession session){
-        sessaoValidator.validarAcessoInterno(session);
-
+        sessaoValidator.validarAdminOuProfessorDono(session, rmProfessor);
         return orientacaoService.listarOrientacoes(rmProfessor);
     }
 
