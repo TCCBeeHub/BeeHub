@@ -40,6 +40,7 @@ public class ProfessorService {
         this.usuarioValidator = usuarioValidator;
     }
 
+    @Transactional
     public ProfessorResumoDTO cadastrarProfessor(ProfessorRequestDTO dto){
         usuarioValidator.validarRm(dto.rmProfessor());
 
@@ -74,6 +75,7 @@ public class ProfessorService {
         );
     }
 
+    @Transactional
     public ProfessorResponseDTO atualizarProfessor(ProfessorRequestAtualizarDTO dto, Long rmProfessor){
         Professor atualizarProfessor = professorRepository.findByRmProfessor(rmProfessor)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Professor não encontrado!"));
@@ -177,7 +179,7 @@ public class ProfessorService {
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Professor não encontrado!"));
 
         if(!deletarProfessor.getOrientacoes().isEmpty()){
-            throw new RecursoNaoPermitidoException("Este professor orienta um grupo!");
+            throw new RecursoNaoPermitidoException("Este professor tem orientações ativas!");
         }
 
         professorRepository.delete(deletarProfessor);

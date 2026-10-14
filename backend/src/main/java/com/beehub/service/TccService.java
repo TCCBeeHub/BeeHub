@@ -1,8 +1,6 @@
 package com.beehub.service;
 
 import com.beehub.dto.comum.TccResumoDTO;
-import com.beehub.dto.comum.TccUsuarioResumoDTO;
-import com.beehub.dto.comum.UsuarioResumoDTO;
 import com.beehub.dto.request.TccRequestDTO;
 import com.beehub.dto.response.TccPublicadoResponseDTO;
 import com.beehub.dto.response.TccResponseDTO;
@@ -12,9 +10,7 @@ import com.beehub.entity.Grupo;
 import com.beehub.entity.Tcc;
 import com.beehub.enums.StatusTcc;
 import com.beehub.exceptions.*;
-import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.GrupoRepository;
-import com.beehub.repository.ProfessorRepository;
 import com.beehub.repository.TccRepository;
 import com.beehub.security.UsuarioValidator;
 import org.springframework.stereotype.Service;
@@ -88,7 +84,7 @@ public class TccService {
         usuarioValidator.validarAlunoGrupo(grupo, rmAluno);
 
         Tcc atualizarTcc = tccRepository.findByGrupo_IdGrupo(idGrupo)
-                .orElseThrow(() -> new TccNaoEncontradoException("Tcc não encontrado!"));
+                .orElseThrow(() -> new TccNaoEncontradoException("TCC não encontrado!"));
 
         if(novaDescricao != null && !novaDescricao.isBlank()){
             atualizarTcc.setDescricao(novaDescricao);
@@ -120,33 +116,33 @@ public class TccService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public TccUsuarioResumoDTO listarTcc(Long idGrupo){
-        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
-                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
-
-        Tcc buscarTcc = tccRepository.findByGrupo_IdGrupo(grupo.getIdGrupo())
-                .orElseThrow(() -> new TccNaoEncontradoException("Este grupo não possui TCC!"));
-
-
-        List<UsuarioResumoDTO> alunosDTO = grupo.getAlunos().stream()
-                .map(a -> new UsuarioResumoDTO(
-                        a.getRmAluno(),
-                        a.getNome(),
-                        a.getLinkFoto()
-                ))
-                .toList();
-
-        return new TccUsuarioResumoDTO(
-                buscarTcc.getCodTcc(),
-                grupo.getNomeGrupo(),
-                buscarTcc.getTema(),
-                buscarTcc.getDescricao(),
-                buscarTcc.getStatus(),
-                alunosDTO,
-                grupo.getOrientacao().getProfessor().getNome()
-        );
-    }
+//    @Transactional(readOnly = true)
+//    public TccUsuarioResumoDTO listarTcc(Long idGrupo){
+//        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
+//                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
+//
+//        Tcc buscarTcc = tccRepository.findByGrupo_IdGrupo(grupo.getIdGrupo())
+//                .orElseThrow(() -> new TccNaoEncontradoException("Este grupo não possui TCC!"));
+//
+//
+//        List<UsuarioResumoDTO> alunosDTO = grupo.getAlunos().stream()
+//                .map(a -> new UsuarioResumoDTO(
+//                        a.getRmAluno(),
+//                        a.getNome(),
+//                        a.getLinkFoto()
+//                ))
+//                .toList();
+//
+//        return new TccUsuarioResumoDTO(
+//                buscarTcc.getCodTcc(),
+//                grupo.getNomeGrupo(),
+//                buscarTcc.getTema(),
+//                buscarTcc.getDescricao(),
+//                buscarTcc.getStatus(),
+//                alunosDTO,
+//                grupo.getOrientacao().getProfessor().getNome()
+//        );
+//    }
 
     @Transactional(readOnly = true)
     public TccResumoDTO listarTccDoGrupo(Long idGrupo, Long rmUsuario){
@@ -184,13 +180,13 @@ public class TccService {
         usuarioValidator.validarAlunoGrupo(tcc.getGrupo(), rmAluno);
 
         if(tcc.getStatus() != StatusTcc.EM_ANDAMENTO){
-            throw new TccJaEntregueException("Este tcc já foi entregue ou avaliado!");
+            throw new TccJaEntregueException("Este TCC já foi entregue ou avaliado!");
         }
 
         LocalDate validarEntrega = LocalDate.of(LocalDate.now().getYear(), Month.OCTOBER, 30);
 
         if(LocalDate.now().isBefore(validarEntrega)){
-            throw new RecursoNaoPermitidoException("A entrega dos trabalhos será liberada após 30/10!");
+            throw new TccAindaNaoPodeSerEntregueException("A entrega dos trabalhos será liberada após 30/10!");
         }
 
         tcc.setStatus(StatusTcc.ENTREGUE);
@@ -215,6 +211,12 @@ public class TccService {
             throw new TccNaoFoiEntregueException("TCC não foi entregue!");
         }
 
+        LocalDate validarAprovacao = LocalDate.of(LocalDate.now().getYear(), Month.NOVEMBER, 20);
+
+        if(LocalDate.now().isBefore(validarAprovacao)){
+            throw new TccAindaNaoPodeSerAvaliadoException("O resultado será feito após a banca final!");
+        }
+
         tcc.setStatus(StatusTcc.APROVADO);
         tccRepository.save(tcc);
 
@@ -234,6 +236,12 @@ public class TccService {
 
         if(tcc.getStatus() != StatusTcc.ENTREGUE){
             throw new TccNaoFoiEntregueException("TCC não foi entregue!");
+        }
+
+        LocalDate validarReprovacao = LocalDate.of(LocalDate.now().getYear(), Month.NOVEMBER, 20);
+
+        if(LocalDate.now().isBefore(validarReprovacao)){
+            throw new TccAindaNaoPodeSerAvaliadoException("O resultado será feito após a banca final!");
         }
 
         tcc.setStatus(StatusTcc.REPROVADO);

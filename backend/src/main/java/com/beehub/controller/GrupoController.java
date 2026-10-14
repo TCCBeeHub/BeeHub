@@ -48,10 +48,10 @@ public class GrupoController {
     }
 
 
-    @GetMapping("/ano/{ano}/curso/{idCurso}")
+    @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<GrupoResumoDTO> listarTodosGruposAdmin(@PathVariable(required = false) Integer ano,
-                                                       @PathVariable(required = false) Long idCurso,
+    public List<GrupoResumoDTO> listarTodosGruposAdmin(@RequestParam(required = false) Integer ano,
+                                                       @RequestParam(required = false) Long idCurso,
                                                        HttpSession session){
 
         sessaoValidator.validarAdmin(session);
