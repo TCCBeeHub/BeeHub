@@ -37,7 +37,7 @@ public class OrientacaoService {
                 .orElseThrow(() -> new CursoNaoEncontradoException("Curso não encontrado!"));
 
         if(orientacaoRepository.existsByCurso_IdCursoAndTurma(dto.idCurso(), dto.turma())){
-            throw new OrientacaoJaEncontradaException("Este grupo já está sendo orientado.");
+            throw new OrientacaoJaEncontradaException("Esta turma já tem um orientador!");
         }
 
         if(orientacaoRepository.existsByProfessor_RmProfessorAndCurso_IdCurso(encontrarProfessor.getRmProfessor(), buscarCurso.getIdCurso())){
