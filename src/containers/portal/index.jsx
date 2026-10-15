@@ -591,10 +591,18 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { login, continueAsVisitor } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [selectedAccess, setSelectedAccess] = useState(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const selectAccess = (access) => {
+    setSelectedAccess(access);
+    setIdentifier("");
+    setPassword("");
+    setError("");
+  };
 
   const submitLogin = async (event) => {
     event.preventDefault();
@@ -633,42 +641,101 @@ export function LoginPage() {
         </button>
         <img className="profile-logo" src={logo} alt="BeeHub" />
         <span className="eyebrow">PLATAFORMA ACADÊMICA</span>
-        <h1>Uma jornada melhor para cada TCC.</h1>
-        <p className="profile-intro">
-          Entre com suas credenciais. Seu perfil e suas permissões são definidos pelo sistema.
-        </p>
-        <form className="login-form" onSubmit={submitLogin}>
-          <label className="form-field">
-            <span>RM ou usuário administrador</span>
-            <input
-              autoComplete="username"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              placeholder="Digite seu RM ou usuário"
-              required
-            />
-          </label>
-          <label className="form-field">
-            <span>Senha</span>
-            <input
-              autoComplete="current-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Digite sua senha"
-              required
-            />
-          </label>
-          {error && <div className="form-error" role="alert">{error}</div>}
-          <button className="button button-primary login-submit" disabled={submitting}>
-            <LogIn size={17} />
-            {submitting ? "Entrando..." : "Entrar"}
-          </button>
-        </form>
-        <button className="visitor-link" type="button" onClick={enterAsVisitor}>
-          <Eye size={16} /> Continuar como visitante
-        </button>
-        <p className="login-help">Problemas para acessar? Procure o administrador da sua ETEC.</p>
+        {!selectedAccess ? (
+          <>
+            <h1>Como deseja acessar?</h1>
+            <p className="profile-intro">
+              Escolha seu espaço para continuar no BeeHub.
+            </p>
+            <div className="access-cards" aria-label="Opções de acesso">
+              <button
+                className="access-card"
+                type="button"
+                onClick={() => selectAccess("aluno")}
+              >
+                <span className="access-card-icon"><GraduationCap size={22} /></span>
+                <strong>Aluno</strong>
+                <span>Acompanhe seu grupo e TCC</span>
+                <ArrowRight className="access-card-arrow" size={17} />
+              </button>
+              <button
+                className="access-card"
+                type="button"
+                onClick={() => selectAccess("professor")}
+              >
+                <span className="access-card-icon access-card-icon-gold"><UserRound size={21} /></span>
+                <strong>Professor</strong>
+                <span>Gerencie suas orientações</span>
+                <ArrowRight className="access-card-arrow" size={17} />
+              </button>
+              <button
+                className="access-card"
+                type="button"
+                onClick={enterAsVisitor}
+              >
+                <span className="access-card-icon access-card-icon-green"><Eye size={20} /></span>
+                <strong>Visitante</strong>
+                <span>Explore cursos e TCCs públicos</span>
+                <ArrowRight className="access-card-arrow" size={17} />
+              </button>
+            </div>
+            <button
+              className="admin-access-link"
+              type="button"
+              onClick={() => selectAccess("administrador")}
+            >
+              Acesso administrativo
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="login-back-link"
+              type="button"
+              onClick={() => selectAccess(null)}
+              disabled={submitting}
+            >
+              <ArrowRight size={15} /> Voltar às opções
+            </button>
+            <h1>
+              {selectedAccess === "administrador"
+                ? "Acesso administrativo"
+                : `Entrar como ${ROLE_LABELS[selectedAccess].toLowerCase()}`}
+            </h1>
+            <p className="profile-intro">
+              Informe suas credenciais. O sistema confirma seu perfil e suas permissões.
+            </p>
+            <form className="login-form" onSubmit={submitLogin}>
+              <label className="form-field">
+                <span>RM ou usuário administrador</span>
+                <input
+                  autoComplete="username"
+                  value={identifier}
+                  onChange={(event) => setIdentifier(event.target.value)}
+                  placeholder="Digite seu RM ou usuário"
+                  required
+                />
+              </label>
+              <label className="form-field">
+                <span>Senha</span>
+                <input
+                  autoComplete="current-password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Digite sua senha"
+                  required
+                />
+              </label>
+              {error && <div className="form-error" role="alert">{error}</div>}
+              <button className="button button-primary login-submit" disabled={submitting}>
+                <LogIn size={17} />
+                {submitting ? "Entrando..." : "Entrar"}
+              </button>
+            </form>
+            <p className="login-help">Problemas para acessar? Procure o administrador da sua ETEC.</p>
+          </>
+        )}
       </section>
       <aside className="profile-aside">
         <div className="profile-aside-content">

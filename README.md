@@ -25,6 +25,8 @@ A URL base é `VITE_API_BASE_URL` (padrão `/api`). Os nomes de propriedades aba
 
 ### Login e sessão
 
+Na tela inicial, três cards direcionam o acesso de **Aluno**, **Professor** e **Visitante**. Os cards de aluno e professor abrem o formulário de credenciais; o visitante segue para o conteúdo público sem autenticação. O acesso administrativo continua disponível por um link separado, sem adicionar um quarto card. A seleção só organiza a navegação: o papel e as permissões efetivos continuam sendo determinados pela resposta do backend.
+
 `POST /api/auth/login`
 
 ```json
