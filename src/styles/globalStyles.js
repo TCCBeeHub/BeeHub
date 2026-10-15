@@ -1,8 +1,6 @@
 import { createGlobalStyle } from "styled-components";
 
 export const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-
   * {
     margin: 0;
     padding: 0;
@@ -15,8 +13,8 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     font-family: ${({ theme }) => theme.font.body};
-    color: #282331;
-    background: #f7f6f3;
+    color: var(--portal-ink, #282331);
+    background: var(--portal-page, #f7f6f3);
     -webkit-font-smoothing: antialiased;
   }
 

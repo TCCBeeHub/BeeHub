@@ -1,43 +1,106 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { loginRequest } from "../services/authApi";
 
 const AuthContext = createContext(null);
-const AUTH_STORAGE_KEY = "beehub-auth";
+const SESSION_STORAGE_KEY = "beehub-session-v1";
+const VALID_ROLES = ["administrador", "aluno", "professor", "visitante"];
 
-function readStoredAuth() {
+function readStoredSession() {
   try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return { role: null, userName: "" };
-    const parsed = JSON.parse(raw);
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+
+    const session = JSON.parse(raw);
     if (
-      !["administrador", "aluno", "professor", "visitante"].includes(
-        parsed.role,
-      )
-    )
-      return { role: null, userName: "" };
-    return { role: parsed.role, userName: parsed.userName || "" };
+      !VALID_ROLES.includes(session.role) ||
+      !session.user ||
+      (session.role !== "visitante" && !session.accessToken)
+    ) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    return session;
   } catch {
-    return { role: null, userName: "" };
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
   }
 }
 
+function clearLegacyDemoSession() {
+  localStorage.removeItem("beehub-auth");
+  localStorage.removeItem("beehub-demo-persona-id");
+}
+
 export function AuthProvider({ children }) {
-  const [{ role, userName }, setAuth] = useState(readStoredAuth);
+  const [session, setSession] = useState(readStoredSession);
 
-  const loginAs = (newRole, name = "") => {
-    const next = { role: newRole, userName: name };
-    setAuth(next);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
-  };
+  useEffect(() => {
+    clearLegacyDemoSession();
+  }, []);
 
-  const logout = () => {
-    setAuth({ role: null, userName: "" });
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    // Mantém os dados de perfil/projetos, mas encerra a autenticação.
-  };
+  const login = useCallback(async (credentials) => {
+    const result = await loginRequest(credentials);
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !VALID_ROLES.includes(result.role) ||
+      result.role === "visitante" ||
+      typeof result.accessToken !== "string" ||
+      !result.accessToken ||
+      !result.user ||
+      typeof result.user !== "object"
+    ) {
+      throw new Error("A resposta de autenticação do servidor é inválida.");
+    }
+
+    const nextSession = {
+      role: result.role,
+      user: result.user,
+      accessToken: result.accessToken,
+    };
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+    setSession(nextSession);
+    return nextSession;
+  }, []);
+
+  const continueAsVisitor = useCallback(() => {
+    const guestSession = {
+      role: "visitante",
+      user: { displayName: "Visitante" },
+      accessToken: "",
+    };
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(guestSession));
+    setSession(guestSession);
+  }, []);
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    setSession(null);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("beehub:session-expired", logout);
+    return () => window.removeEventListener("beehub:session-expired", logout);
+  }, [logout]);
 
   const value = useMemo(
-    () => ({ role, userName, loginAs, logout }),
-    [role, userName],
+    () => ({
+      role: session?.role || null,
+      user: session?.user || null,
+      userName: session?.user?.displayName || "",
+      accessToken: session?.accessToken || "",
+      login,
+      continueAsVisitor,
+      logout,
+    }),
+    [session, login, continueAsVisitor, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

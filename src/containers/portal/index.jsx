@@ -1,24 +1,25 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
   Building2,
   CalendarDays,
   Check,
-  ChevronRight,
   ClipboardList,
   Eye,
   FileText,
   GraduationCap,
   LayoutDashboard,
   LockKeyhole,
+  LogIn,
   LogOut,
+  Moon,
   MessageCircle,
   Pencil,
   Plus,
-  RotateCcw,
   Search,
   ShieldCheck,
+  Sun,
   Trash2,
   UserRound,
   UsersRound,
@@ -31,12 +32,9 @@ import {
   useNavigate,
 } from "react-router-dom";
 import logo from "../../assets/images/BeeHubHorizontal.jpeg";
-import {
-  loadDemoData,
-  resetDemoData,
-  saveDemoData,
-} from "../../services/demoApi";
+import { createEntity, deleteEntity, getPortalData, updateEntity } from "../../services/portalApi";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import "./portal.css";
 
 const ROLE_LABELS = {
@@ -44,13 +42,6 @@ const ROLE_LABELS = {
   aluno: "Aluno",
   professor: "Professor",
   administrador: "Administrador",
-};
-
-const ROLE_DESCRIPTIONS = {
-  visitante: "Acesse os cursos e conheça TCCs aprovados e publicados.",
-  aluno: "Acompanhe seu grupo, seu TCC e as orientações vinculadas.",
-  professor: "Gerencie somente os grupos e TCCs sob sua orientação.",
-  administrador: "Gerencie os cadastros acadêmicos e suas relações.",
 };
 
 const NAV_ITEMS = {
@@ -149,12 +140,14 @@ const COLLECTION_CONFIG = {
 const FIELD_LABELS = {
   idAdmin: "Identificador",
   userAdmin: "Usuário",
+  senhaAdmin: "Senha inicial",
   codEtec: "Código da ETEC",
   nome: "Nome",
   idCurso: "Identificador do curso",
   quantAlunos: "Quantidade de alunos",
   periodo: "Período",
   rmProfessor: "RM do professor",
+  senha: "Senha inicial",
   rmAluno: "RM do aluno",
   email: "E-mail",
   linkFoto: "Link da foto",
@@ -172,6 +165,12 @@ const FIELD_LABELS = {
   status: "Status",
   linkSite: "Link do site",
   dataCriacao: "Data de criação",
+};
+
+const ACCOUNT_PASSWORD_FIELDS = {
+  administradores: "senhaAdmin",
+  alunos: "senha",
+  professores: "senha",
 };
 
 const STATUS_LABELS = {
@@ -237,22 +236,6 @@ function getSectionFromPath(pathname) {
 function getPathRecordId(pathname) {
   const parts = pathname.split("/").filter(Boolean);
   return parts[1] ? decodeURIComponent(parts[1]) : "";
-}
-
-function findCurrentUser(role, data) {
-  if (role === "aluno") {
-    const rm = localStorage.getItem("beehub-demo-persona-id");
-    return data.alunos.find((item) => item.rmAluno === rm) || data.alunos[0];
-  }
-  if (role === "professor") {
-    const rm = localStorage.getItem("beehub-demo-persona-id");
-    return (
-      data.professores.find((item) => item.rmProfessor === rm) ||
-      data.professores[0]
-    );
-  }
-  if (role === "administrador") return data.administradores[0];
-  return null;
 }
 
 function filterCollection(role, user, data, collection) {
@@ -362,6 +345,13 @@ function validateRecord(collection, record, data, editingKey) {
   const key = config.key;
   if (!String(record[key] ?? "").trim()) {
     return `${FIELD_LABELS[key]} é obrigatório.`;
+  }
+  if (
+    !editingKey &&
+    ACCOUNT_PASSWORD_FIELDS[collection] &&
+    !String(record[ACCOUNT_PASSWORD_FIELDS[collection]] ?? "").trim()
+  ) {
+    return "Informe uma senha inicial para a nova conta.";
   }
   if (
     data[collection].some(
@@ -597,56 +587,88 @@ function getPageTitle(section, role) {
   return COLLECTION_CONFIG[section]?.label || (role === "visitante" ? "Explore o BeeHub" : "Visão geral");
 }
 
-export function ProfilePicker() {
+export function LoginPage() {
   const navigate = useNavigate();
-  const { loginAs } = useAuth();
-  const profiles = [
-    { role: "visitante", title: "Visitante", icon: Eye, detail: ROLE_DESCRIPTIONS.visitante },
-    { role: "aluno", title: "Aluno", icon: GraduationCap, detail: ROLE_DESCRIPTIONS.aluno, persona: "2026001" },
-    { role: "professor", title: "Professor", icon: UserRound, detail: ROLE_DESCRIPTIONS.professor, persona: "12345" },
-    { role: "administrador", title: "Administrador", icon: ShieldCheck, detail: ROLE_DESCRIPTIONS.administrador, persona: "1" },
-  ];
+  const { login, continueAsVisitor } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const chooseProfile = (profile) => {
-    if (profile.persona) {
-      localStorage.setItem("beehub-demo-persona-id", profile.persona);
-    } else {
-      localStorage.removeItem("beehub-demo-persona-id");
+  const submitLogin = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      await login({ identifier: identifier.trim(), password });
+      navigate("/", { replace: true });
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? loginError.message
+          : "Não foi possível entrar. Tente novamente.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-    loginAs(profile.role, ROLE_LABELS[profile.role]);
+  };
+
+  const enterAsVisitor = () => {
+    continueAsVisitor();
     navigate("/", { replace: true });
   };
 
   return (
-    <main className="profile-picker">
-      <section className="profile-card">
+    <main className="login-page" data-theme={theme}>
+      <section className="login-card">
+        <button
+          className="theme-toggle login-theme-toggle"
+          type="button"
+          onClick={toggleTheme}
+          aria-label={`Ativar tema ${theme === "light" ? "escuro" : "claro"}`}
+          title={`Ativar tema ${theme === "light" ? "escuro" : "claro"}`}
+        >
+          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
         <img className="profile-logo" src={logo} alt="BeeHub" />
         <span className="eyebrow">PLATAFORMA ACADÊMICA</span>
         <h1>Uma jornada melhor para cada TCC.</h1>
         <p className="profile-intro">
-          Escolha um perfil para explorar a demonstração. Esta etapa não usa autenticação real.
+          Entre com suas credenciais. Seu perfil e suas permissões são definidos pelo sistema.
         </p>
-        <div className="profile-options">
-          {profiles.map(({ role, title, icon: Icon, detail, persona }) => (
-            <button
-              className="profile-option"
-              key={role}
-              onClick={() => chooseProfile({ role, persona })}
-            >
-              <span className={`profile-option-icon profile-${role}`}>
-                <Icon size={21} />
-              </span>
-              <span className="profile-option-copy">
-                <strong>{title}</strong>
-                <small>{detail}</small>
-              </span>
-              <ChevronRight size={19} />
-            </button>
-          ))}
-        </div>
-        <p className="demo-footnote">
-          <LockKeyhole size={14} /> Dados de exemplo locais. Nenhuma conta ou integração externa.
-        </p>
+        <form className="login-form" onSubmit={submitLogin}>
+          <label className="form-field">
+            <span>RM ou usuário administrador</span>
+            <input
+              autoComplete="username"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="Digite seu RM ou usuário"
+              required
+            />
+          </label>
+          <label className="form-field">
+            <span>Senha</span>
+            <input
+              autoComplete="current-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Digite sua senha"
+              required
+            />
+          </label>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <button className="button button-primary login-submit" disabled={submitting}>
+            <LogIn size={17} />
+            {submitting ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+        <button className="visitor-link" type="button" onClick={enterAsVisitor}>
+          <Eye size={16} /> Continuar como visitante
+        </button>
+        <p className="login-help">Problemas para acessar? Procure o administrador da sua ETEC.</p>
       </section>
       <aside className="profile-aside">
         <div className="profile-aside-content">
@@ -667,19 +689,58 @@ export function ProfilePicker() {
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  const nextTheme = theme === "light" ? "escuro" : "claro";
+  return (
+    <button
+      className="theme-toggle"
+      type="button"
+      onClick={toggleTheme}
+      aria-label={`Ativar tema ${nextTheme}`}
+      title={`Ativar tema ${nextTheme}`}
+    >
+      {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
+    </button>
+  );
+}
+
 export function PortalApp() {
-  const { role, logout } = useAuth();
+  const { role, user, logout, accessToken } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const [stored] = useState(loadDemoData);
-  const [data, setData] = useState(stored.data);
-  const [storageError, setStorageError] = useState(stored.error);
+  const [data, setData] = useState(() =>
+    Object.fromEntries(Object.keys(COLLECTION_CONFIG).map((key) => [key, []])),
+  );
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [flash, setFlash] = useState("");
   const [search, setSearch] = useState("");
   const [dialog, setDialog] = useState(null);
   const [formError, setFormError] = useState("");
   const [selectedConversation, setSelectedConversation] = useState("");
-  const user = useMemo(() => findCurrentUser(role, data), [role, data]);
+  const refreshPortal = useCallback(async (signal) => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      setData(await getPortalData({ signal }));
+    } catch (error) {
+      if (signal?.aborted) return;
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os dados do servidor.",
+      );
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshPortal(controller.signal);
+    return () => controller.abort();
+  }, [refreshPortal, role, accessToken]);
   const section = getSectionFromPath(location.pathname);
   const menu = NAV_ITEMS[role] || [];
   const isDetails = ["tcc-detail", "curso-detail"].includes(section);
@@ -718,13 +779,15 @@ export function PortalApp() {
   }
 
   const displayName =
-    role === "aluno"
+    user?.displayName ||
+    user?.userAdmin ||
+    (role === "aluno"
       ? `RM ${user?.rmAluno || "—"}`
       : role === "professor"
         ? `RM ${user?.rmProfessor || "—"}`
         : role === "administrador"
-          ? user?.userAdmin || "Administrador"
-          : "Visitante";
+          ? "Administrador"
+          : "Visitante");
   const currentTitle = getPageTitle(section, role);
 
   const closeDialog = () => {
@@ -732,25 +795,12 @@ export function PortalApp() {
     setFormError("");
   };
 
-  const persistData = (next) => {
-    try {
-      saveDemoData(next);
-      setData(next);
-      setStorageError("");
-      setFlash("Alterações salvas somente neste navegador.");
-      closeDialog();
-    } catch (error) {
-      setFormError(
-        error instanceof Error
-          ? `Não foi possível salvar localmente: ${error.message}`
-          : "Não foi possível salvar os dados locais.",
-      );
-    }
-  };
-
   const openEditor = (targetCollection, record) => {
     setFormError("");
-    const draft = record || getBlankRecord(targetCollection, data);
+    const draft = record || { ...getBlankRecord(targetCollection, data) };
+    if (!record && ACCOUNT_PASSWORD_FIELDS[targetCollection]) {
+      draft[ACCOUNT_PASSWORD_FIELDS[targetCollection]] = "";
+    }
     if (!record && targetCollection === "tccs") {
       draft.codTCC = getNextTccCode(data);
       if (role === "aluno") draft.idGrupo = Number(user?.idGrupo) || "";
@@ -770,7 +820,7 @@ export function PortalApp() {
     });
   };
 
-  const saveRecord = (event) => {
+  const saveRecord = async (event) => {
     event.preventDefault();
     const { collection: targetCollection, record, editing, editingKey } = dialog;
     const message = validateRecord(targetCollection, record, data, editingKey);
@@ -778,21 +828,25 @@ export function PortalApp() {
       setFormError(message);
       return;
     }
-    const next = {
-      ...data,
-      [targetCollection]: editing
-        ? data[targetCollection].map((item) =>
-            String(item[COLLECTION_CONFIG[targetCollection].key]) ===
-            String(editingKey)
-              ? record
-              : item,
-          )
-        : [...data[targetCollection], record],
-    };
-    persistData(next);
+    try {
+      if (editing) {
+        await updateEntity(targetCollection, editingKey, record);
+      } else {
+        await createEntity(targetCollection, record);
+      }
+      closeDialog();
+      setFlash("Alterações salvas no servidor.");
+      await refreshPortal();
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar as alterações no servidor.",
+      );
+    }
   };
 
-  const deleteRecord = (targetCollection, record) => {
+  const deleteRecord = async (targetCollection, record) => {
     const key = COLLECTION_CONFIG[targetCollection].key;
     const dependencyError = buildDeleteError(targetCollection, record, data);
     if (dependencyError) {
@@ -803,33 +857,23 @@ export function PortalApp() {
     if (!window.confirm(`Excluir este registro de ${COLLECTION_CONFIG[targetCollection].singular}?`)) {
       return;
     }
-    persistData({
-      ...data,
-      [targetCollection]: data[targetCollection].filter(
-        (item) => String(item[key]) !== String(record[key]),
-      ),
-    });
+    try {
+      await deleteEntity(targetCollection, record[key]);
+      closeDialog();
+      setFlash("Registro excluído do servidor.");
+      await refreshPortal();
+    } catch (error) {
+      setFlash(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir o registro do servidor.",
+      );
+    }
   };
 
   const switchProfile = () => {
     logout();
     navigate("/entrar", { replace: true });
-  };
-
-  const resetData = () => {
-    if (!window.confirm("Restaurar os dados iniciais desta demonstração?")) return;
-    try {
-      const fresh = resetDemoData();
-      setData(fresh);
-      setStorageError("");
-      setFlash("Os dados de demonstração foram restaurados.");
-    } catch (error) {
-      setStorageError(
-        error instanceof Error
-          ? `Não foi possível restaurar os dados locais: ${error.message}`
-          : "Não foi possível restaurar os dados locais.",
-      );
-    }
   };
 
   let page;
@@ -909,7 +953,7 @@ export function PortalApp() {
     section === "perfil";
 
   return (
-    <div className="bee-app">
+    <div className="bee-app" data-theme={theme}>
       <aside className="app-sidebar">
         <Link className="app-brand" to="/" aria-label="BeeHub, início">
           <img src={logo} alt="BeeHub" />
@@ -929,11 +973,6 @@ export function PortalApp() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          {role === "administrador" && (
-            <button className="sidebar-reset" onClick={resetData}>
-              <RotateCcw size={16} /> Restaurar demonstração
-            </button>
-          )}
           <div className="profile-identity">
             <span className="identity-avatar">
               {role === "administrador" ? "A" : role === "professor" ? "P" : role === "aluno" ? "E" : "V"}
@@ -944,7 +983,7 @@ export function PortalApp() {
             </span>
           </div>
           <button className="switch-profile" onClick={switchProfile}>
-            <LogOut size={16} /> Trocar perfil
+            <LogOut size={16} /> Sair
           </button>
         </div>
       </aside>
@@ -967,18 +1006,28 @@ export function PortalApp() {
                 />
               </label>
             )}
-            <span className="role-chip"><span /> Demonstração</span>
+            <span className="role-chip"><span /> {role === "visitante" ? "Acesso público" : "Conectado"}</span>
+            <ThemeToggle />
           </div>
         </header>
         <div className="page-content">
-          {storageError && <div className="notice notice-error">{storageError}</div>}
           {flash && (
             <div className="notice notice-info" role="status">
               <span>{flash}</span>
               <button onClick={() => setFlash("")} aria-label="Fechar aviso"><X size={16} /></button>
             </div>
           )}
-          {page}
+          {loading ? (
+            <div className="portal-state" role="status">Carregando dados do servidor...</div>
+          ) : loadError ? (
+            <div className="portal-state portal-state-error" role="alert">
+              <strong>Não foi possível abrir o BeeHub</strong>
+              <p>{loadError}</p>
+              <button className="button button-primary" onClick={() => refreshPortal()}>
+                Tentar novamente
+              </button>
+            </div>
+          ) : page}
         </div>
       </main>
 
@@ -1182,7 +1231,7 @@ function Dashboard({ role, user, data }) {
       <PageHeading
         eyebrow="CADASTROS DO MODELO"
         title="Entidades e relacionamentos"
-        description="Acesse cada entidade do MER. Os cadastros de demonstração ficam neste navegador."
+        description="Consulte e administre as entidades e os relacionamentos armazenados no servidor."
       />
       <div className="entity-shortcuts">
         {overview.map(({ id, label, count, icon: Icon, path }) => (
@@ -1495,20 +1544,27 @@ function EntityForm({
 }) {
   const config = COLLECTION_CONFIG[collection];
   const key = config.key;
+  const accountPasswordField =
+    !editing && role === "administrador"
+      ? ACCOUNT_PASSWORD_FIELDS[collection]
+      : "";
   const allowedFields = editing
     ? editableFields(role, collection, config)
     : role === "administrador"
-      ? editableFields(role, collection, config)
+      ? [...editableFields(role, collection, config), accountPasswordField]
       : collection === "tccs"
         ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
         : [];
-  const fields = config.fields.filter(
+  const fields = [...config.fields, accountPasswordField].filter(
+    Boolean,
+  ).filter(
     (field) =>
       allowedFields.includes(field) ||
     (!editing && field === key && role === "administrador"),
   );
 
   const getFieldType = (field) => {
+    if (field === "senha" || field === "senhaAdmin") return "password";
     if (field === "codEtec" && collection === "cursos") return "select";
     if (field === "idCurso" && ["alunos", "orientacoes"].includes(collection)) return "select";
     if (field === "idGrupo" && ["alunos", "tccs"].includes(collection)) return "select";
@@ -1566,7 +1622,7 @@ function EntityForm({
         </div>
         <p className="form-intro">
           {role === "administrador"
-            ? "Preencha os atributos previstos no modelo. Senhas não são exibidas nem persistidas nesta demonstração."
+            ? "Preencha os atributos do MER. A senha inicial é enviada somente ao servidor e nunca é exibida depois."
             : "Você pode alterar somente os dados permitidos para o seu perfil e seus vínculos."}
         </p>
         <form onSubmit={onSave}>
@@ -1640,7 +1696,7 @@ function EntityForm({
           {formError && <div className="form-error" role="alert">{formError}</div>}
           <div className="modal-actions">
             <button type="button" className="button button-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="button button-primary"><Check size={16} /> Salvar localmente</button>
+            <button type="submit" className="button button-primary"><Check size={16} /> Salvar alterações</button>
           </div>
         </form>
       </section>
@@ -1744,7 +1800,7 @@ function ConversationPage({ role, user, data, selected, onSelect }) {
       <PageHeading
         eyebrow="ORIENTAÇÃO ENTRE ALUNO E PROFESSOR"
         title="Conversas"
-        description="Demonstração visual de uma conversa vinculada a um relacionamento existente."
+        description="A interface de conversas será conectada em uma etapa futura."
       />
       <div className="chat-stage-note">
         <span className="chat-stage-icon"><MessageCircle size={19} /></span>

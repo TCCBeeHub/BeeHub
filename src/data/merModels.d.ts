@@ -1,4 +1,5 @@
 export type Turma = "A" | "B";
+export type Perfil = "administrador" | "aluno" | "professor" | "visitante";
 
 export type StatusTcc =
   | "EM_ANDAMENTO"
@@ -79,6 +80,33 @@ export interface MerData {
   cursos: Curso[];
   professores: Professor[];
   alunos: Aluno[];
+  orientacoes: Orientacao[];
+  grupos: Grupo[];
+  tccs: Tcc[];
+}
+
+export interface LoginRequest {
+  identifier: string;
+  password: string;
+}
+
+export type AuthenticatedUser =
+  | Pick<Administrador, "idAdmin" | "userAdmin">
+  | Pick<Aluno, "rmAluno" | "email" | "idCurso" | "idGrupo">
+  | Pick<Professor, "rmProfessor" | "email">;
+
+export interface LoginResponse {
+  accessToken: string;
+  role: Exclude<Perfil, "visitante">;
+  user: AuthenticatedUser & { displayName?: string };
+}
+
+export interface PortalData {
+  administradores: Array<Omit<Administrador, "senhaAdmin">>;
+  etecs: Etec[];
+  cursos: Curso[];
+  professores: Array<Omit<Professor, "senha">>;
+  alunos: Array<Omit<Aluno, "senha">>;
   orientacoes: Orientacao[];
   grupos: Grupo[];
   tccs: Tcc[];
