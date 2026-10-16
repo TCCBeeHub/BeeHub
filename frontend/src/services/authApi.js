@@ -1,8 +1,8 @@
 import { apiRequest } from "./httpClient";
 
 export function loginRequest({ identifier, password }) {
-  return apiRequest("/auth/login", {
+  return apiRequest("/admin/login", {
     method: "POST",
-    body: { identifier, password },
+    body: { user: identifier, senha: password },
   });
 }

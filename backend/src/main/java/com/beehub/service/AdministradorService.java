@@ -12,13 +12,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class AdministradorService {
     private final AdministradorRepository administradorRepository;
-    private final PasswordEncoder passwordEncoder;
     private final UsuarioValidator usuarioValidator;
 
     public AdministradorService(AdministradorRepository administradorRepository,
-                                PasswordEncoder passwordEncoder, UsuarioValidator usuarioValidator){
+                                UsuarioValidator usuarioValidator){
         this.administradorRepository = administradorRepository;
-        this.passwordEncoder = passwordEncoder;
         this.usuarioValidator = usuarioValidator;
     }
 
