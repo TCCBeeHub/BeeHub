@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const PageContainer = styled.div`
   padding: 2rem;
@@ -9,7 +9,7 @@ export const PageContainer = styled.div`
 
 export const Title = styled.h1`
   font-size: 1.875rem;
-  color: #111827;
+  color: #ffffff;
   margin-bottom: 2rem;
   font-weight: 700;
 `;
@@ -42,7 +42,7 @@ export const ContatoSection = styled.div`
 
 export const SectionTitle = styled.h2`
   font-size: 1.25rem;
-  color: #374151;
+  color: #adadad;
   margin-bottom: 1.5rem;
   font-weight: 600;
   display: flex;
@@ -72,7 +72,7 @@ export const FaqQuestion = styled.div`
   justify-content: space-between;
   align-items: center;
   background-color: #f9fafb;
-  
+
   span {
     font-size: 1.25rem;
     color: #6b7280;
@@ -90,8 +90,14 @@ export const FaqAnswer = styled.div`
 
   /* Efeito suave ao abrir a resposta */
   @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 

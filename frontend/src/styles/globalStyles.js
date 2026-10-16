@@ -1,8 +1,6 @@
-import { createGlobalStyle } from 'styled-components';
+import { createGlobalStyle } from "styled-components";
 
 export const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-
   * {
     margin: 0;
     padding: 0;
@@ -15,12 +13,8 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     font-family: ${({ theme }) => theme.font.body};
-    color: ${({ theme }) => theme.colors.textPrimary};
-    background: ${({ theme }) => theme.colors.bgVoid};
-    background-image:
-      radial-gradient(600px circle at 0% 0%, rgba(139, 92, 246, 0.10), transparent 60%),
-      radial-gradient(800px circle at 100% 20%, rgba(109, 40, 217, 0.08), transparent 55%);
-    background-attachment: fixed;
+    color: var(--portal-ink, #282331);
+    background: var(--portal-page, #f7f6f3);
     -webkit-font-smoothing: antialiased;
   }
 

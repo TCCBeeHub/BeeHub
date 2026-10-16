@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const BackLink = styled.button`
   display: flex;
@@ -249,4 +249,174 @@ export const SendButton = styled.button`
   &:hover {
     background: ${({ theme }) => theme.colors.accent};
   }
+`;
+
+export const SubTitle = styled.p`
+  font-size: 0.74rem;
+  color: ${({ theme }) => theme.colors.textMuted};
+  margin-top: 4px;
+`;
+export const FileList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+export const FileCard = styled.div`
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+export const FileInfo = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  > div:last-child {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    strong {
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    span {
+      font-size: 0.68rem;
+      color: ${({ theme }) => theme.colors.textMuted};
+      margin-top: 3px;
+      line-height: 1.45;
+    }
+  }
+`;
+export const FileIcon = styled.div`
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: ${({ theme }) => theme.colors.bgSurfaceRaised};
+  color: ${({ theme }) => theme.colors.accentBright};
+  flex: 0 0 auto;
+`;
+export const FileButtons = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+`;
+export const FileButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.bgSurfaceRaised};
+  font-size: 0.69rem;
+  color: ${({ theme }) => theme.colors.textPrimary};
+`;
+export const FileDelete = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: rgba(248, 113, 113, 0.1);
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 0.69rem;
+`;
+export const DeliverySummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  color: ${({ theme }) => theme.colors.success};
+  > div {
+    display: flex;
+    flex-direction: column;
+    strong {
+      font-size: 0.78rem;
+      color: ${({ theme }) => theme.colors.textPrimary};
+    }
+    span {
+      font-size: 0.67rem;
+      color: ${({ theme }) => theme.colors.textMuted};
+      margin-top: 3px;
+    }
+  }
+`;
+export const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 2, 12, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 20px;
+`;
+export const PreviewModal = styled.div`
+  width: min(900px, 100%);
+  height: min(760px, 90vh);
+  background: ${({ theme }) => theme.colors.bgSurfaceRaised};
+  border: 1px solid ${({ theme }) => theme.colors.borderStrong};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+export const PreviewHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 17px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  strong {
+    display: block;
+    font-size: 0.82rem;
+  }
+  span {
+    display: block;
+    font-size: 0.66rem;
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin-top: 3px;
+  }
+  button {
+    color: ${({ theme }) => theme.colors.textMuted};
+  }
+`;
+export const PreviewBody = styled.div`
+  flex: 1;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+`;
+export const PreviewFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 13px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+export const PreviewNote = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: 0.68rem;
 `;

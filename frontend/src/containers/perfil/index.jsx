@@ -1,26 +1,34 @@
-import { useRef, useState, useEffect } from 'react';
-import { Camera } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import * as S from './styles';
+import { useRef, useState, useEffect } from "react";
+import { Camera } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import * as S from "./styles";
 
 export function Perfil() {
-  const { userName } = useAuth();
+  const { userName, role } = useAuth();
   const fileInputRef = useRef(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [salvo, setSalvo] = useState(false);
 
   // Resgatando RM e Escola salvos no login (ou valores vazios se não encontrar)
-  const rmSalvo = localStorage.getItem('usuarioRM') || '';
-  const escolaSalva = localStorage.getItem('usuarioEscola') || '';
+  const rmSalvo = localStorage.getItem("usuarioRM") || "";
+  const escolaSalva =
+    localStorage.getItem("usuarioEscola") ||
+    (role === "professor" ? "ETEC (Professor)" : "");
+  const emailSalvo = localStorage.getItem("usuarioEmail") || "";
+  const sobreMimSalvo = localStorage.getItem("usuarioSobreMim") || "";
 
   const [form, setForm] = useState({
-    nome: userName || '',     // Nome vem do AuthContext corretamente agora
-    rm: rmSalvo,              // R.M. ou Registro puxado do localStorage
-    escola: escolaSalva,      // Escola selecionada no login
-    curso: 'Análise e Desenvolvimento de Sistemas', // Simulação de banco de dados
-    serie: '3º Módulo',                             // Simulação de banco de dados
-    sobreMim: '',
+    nome: userName || "", // Nome vem do AuthContext corretamente agora
+    rm: rmSalvo, // R.M. ou Registro puxado do localStorage
+    escola: escolaSalva, // Escola selecionada no login
+    curso: "Análise e Desenvolvimento de Sistemas", // Simulação de banco de dados
+    serie: "3º Módulo", // Simulação de banco de dados
+    sobreMim: sobreMimSalvo,
   });
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, nome: userName || prev.nome }));
+  }, [userName]);
 
   const handleField = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -39,16 +47,17 @@ export function Perfil() {
 
   const handleSalvar = (e) => {
     e.preventDefault();
+    localStorage.setItem("usuarioSobreMim", form.sobreMim);
     setSalvo(true);
     setTimeout(() => setSalvo(false), 2500);
   };
 
   // Estilo visual para campos não editáveis
-  const disabledStyle = { 
-    backgroundColor: '#f3f4f6', 
-    color: '#6b7280', 
-    cursor: 'not-allowed', 
-    userSelect: 'none' 
+  const disabledStyle = {
+    backgroundColor: "#f3f4f6",
+    color: "#6b7280",
+    cursor: "not-allowed",
+    userSelect: "none",
   };
 
   return (
@@ -57,8 +66,14 @@ export function Perfil() {
 
       <S.AvatarRow>
         <S.AvatarWrapper>
-          <S.Avatar $imageUrl={avatarUrl}>{!avatarUrl && <Camera size={26} />}</S.Avatar>
-          <S.AvatarEditButton type="button" onClick={handleTrocarFoto} aria-label="Trocar foto">
+          <S.Avatar $imageUrl={avatarUrl}>
+            {!avatarUrl && <Camera size={26} />}
+          </S.Avatar>
+          <S.AvatarEditButton
+            type="button"
+            onClick={handleTrocarFoto}
+            aria-label="Trocar foto"
+          >
             <Camera size={14} />
           </S.AvatarEditButton>
           <S.HiddenFileInput
@@ -80,22 +95,45 @@ export function Perfil() {
             Nome Institucional
             <S.Input value={form.nome} readOnly style={disabledStyle} />
           </S.Field>
-          
+
           <S.Field>
             R.M. / Nº de Registro
             <S.Input value={form.rm} readOnly style={disabledStyle} />
           </S.Field>
-          
+
           <S.Field>
             Escola
             <S.Input value={form.escola} readOnly style={disabledStyle} />
           </S.Field>
-          
+
+          <S.Field>
+            E-mail institucional
+            <S.Input
+              value={
+                emailSalvo ||
+                (form.nome
+                  ? `${form.nome.toLowerCase().replace(/[^a-z0-9]+/g, ".")}@etec.sp.gov.br`
+                  : "")
+              }
+              readOnly
+              style={disabledStyle}
+            />
+          </S.Field>
+
+          <S.Field>
+            Perfil de acesso
+            <S.Input
+              value={role === "professor" ? "Professor / Orientador" : "Aluno"}
+              readOnly
+              style={disabledStyle}
+            />
+          </S.Field>
+
           <S.Field>
             Curso
             <S.Input value={form.curso} readOnly style={disabledStyle} />
           </S.Field>
-          
+
           <S.Field>
             Série / Módulo
             <S.Input value={form.serie} readOnly style={disabledStyle} />
@@ -107,7 +145,7 @@ export function Perfil() {
           Sobre mim
           <S.TextArea
             value={form.sobreMim}
-            onChange={handleField('sobreMim')}
+            onChange={handleField("sobreMim")}
             placeholder="Conte um pouco sobre você, suas habilidades e interesses no TCC..."
           />
         </S.Field>

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const PageHeader = styled.div`
   display: flex;
@@ -42,7 +42,9 @@ export const GroupCard = styled.button`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.lg};
   overflow: hidden;
-  transition: transform 0.12s ease, border-color 0.15s ease;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -168,6 +170,10 @@ export const MemberChip = styled.span`
   background: ${({ theme }) => theme.colors.bgSurfaceAlt};
   font-size: 0.78rem;
   color: ${({ theme }) => theme.colors.textPrimary};
+  small {
+    font-size: 0.61rem;
+    color: ${({ theme }) => theme.colors.textFaint};
+  }
 `;
 
 export const MemberChipRemove = styled.button`
@@ -208,4 +214,122 @@ export const ModalSubmit = styled.button`
   &:hover {
     background: ${({ theme }) => theme.colors.accent};
   }
+`;
+
+export const PageHint = styled.p`
+  font-size: 0.76rem;
+  color: ${({ theme }) => theme.colors.textMuted};
+  margin-top: 4px;
+`;
+export const SearchArea = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  @media (max-width: 700px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+export const SearchBox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 390px;
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.bgSurface};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  color: ${({ theme }) => theme.colors.textMuted};
+  input {
+    flex: 1;
+    color: ${({ theme }) => theme.colors.textPrimary};
+    font-size: 0.78rem;
+    background: transparent;
+    outline: 0;
+  }
+`;
+export const SearchNote = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.7rem;
+  color: ${({ theme }) => theme.colors.textFaint};
+`;
+export const CardRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+export const FileBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.colors.accentDim};
+  font-size: 0.63rem;
+  color: ${({ theme }) => theme.colors.textPrimary};
+`;
+export const ModalSearchRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+export const ModalSearch = styled.input`
+  flex: 1;
+  outline: 0;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textPrimary};
+  font-size: 0.82rem;
+`;
+export const ResultList = styled.div`
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 190px;
+  overflow: auto;
+`;
+export const ResultButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  text-align: left;
+  color: ${({ theme }) => theme.colors.textPrimary};
+  svg {
+    color: ${({ theme }) => theme.colors.accentBright};
+  }
+  span {
+    display: flex;
+    flex-direction: column;
+    strong {
+      font-size: 0.75rem;
+    }
+    small {
+      font-size: 0.64rem;
+      color: ${({ theme }) => theme.colors.textMuted};
+      margin-top: 2px;
+    }
+  }
+  &:hover {
+    background: ${({ theme }) => theme.colors.bgSurfaceRaised};
+  }
+`;
+export const NoResult = styled.p`
+  font-size: 0.7rem;
+  color: ${({ theme }) => theme.colors.textFaint};
+  padding: 8px;
 `;

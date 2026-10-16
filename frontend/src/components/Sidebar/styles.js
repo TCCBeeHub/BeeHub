@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const Wrapper = styled.aside`
   position: fixed;
@@ -6,7 +6,9 @@ export const Wrapper = styled.aside`
   left: 0;
   bottom: 0;
   width: ${({ $collapsed, theme }) =>
-    $collapsed ? theme.layout.sidebarCollapsedWidth : theme.layout.sidebarWidth};
+    $collapsed
+      ? theme.layout.sidebarCollapsedWidth
+      : theme.layout.sidebarWidth};
   background: ${({ theme }) => theme.colors.bgSurface};
   border-right: 1px solid ${({ theme }) => theme.colors.border};
   display: flex;
@@ -31,10 +33,14 @@ export const NavItem = styled.button`
   border-radius: ${({ theme }) => theme.radius.md};
   width: 100%;
   text-align: left;
-  color: ${({ $active, theme }) => ($active ? theme.colors.textPrimary : theme.colors.textMuted)};
-  background: ${({ $active, theme }) => ($active ? theme.colors.accentDim : 'transparent')};
-  box-shadow: ${({ $active, theme }) => ($active ? theme.shadow.glow : 'none')};
-  transition: background 0.15s ease, color 0.15s ease;
+  color: ${({ $active, theme }) =>
+    $active ? theme.colors.textPrimary : theme.colors.textMuted};
+  background: ${({ $active, theme }) =>
+    $active ? theme.colors.accentDim : "transparent"};
+  box-shadow: ${({ $active, theme }) => ($active ? theme.shadow.glow : "none")};
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   position: relative;
 
   svg {
@@ -42,7 +48,8 @@ export const NavItem = styled.button`
   }
 
   &:hover {
-    background: ${({ $active, theme }) => ($active ? theme.colors.accentDim : theme.colors.bgSurfaceAlt)};
+    background: ${({ $active, theme }) =>
+      $active ? theme.colors.accentDim : theme.colors.bgSurfaceAlt};
     color: ${({ theme }) => theme.colors.textPrimary};
   }
 `;
@@ -85,8 +92,10 @@ export const CollapseButton = styled.button`
   color: ${({ theme }) => theme.colors.textMuted};
   background: ${({ theme }) => theme.colors.bgSurfaceAlt};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  transform: rotate(${({ $collapsed }) => ($collapsed ? '180deg' : '0deg')});
-  transition: transform 0.2s ease, color 0.15s ease;
+  transform: rotate(${({ $collapsed }) => ($collapsed ? "180deg" : "0deg")});
+  transition:
+    transform 0.2s ease,
+    color 0.15s ease;
 
   &:hover {
     color: ${({ theme }) => theme.colors.accentBright};

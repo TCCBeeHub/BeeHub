@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const PageHeader = styled.div`
   margin-bottom: 22px;
@@ -106,6 +106,8 @@ export const StepList = styled.div`
 `;
 
 export const StepRow = styled.button`
+  opacity: ${({ $locked }) => ($locked ? 0.5 : 1)};
+  cursor: ${({ $locked }) => ($locked ? "not-allowed" : "pointer")};
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -128,16 +130,20 @@ export const StepCheck = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${({ $done, theme }) => ($done ? theme.colors.success : theme.colors.borderStrong)};
-  background: ${({ $done, theme }) => ($done ? theme.colors.success : 'transparent')};
+  border: 1px solid
+    ${({ $done, theme }) =>
+      $done ? theme.colors.success : theme.colors.borderStrong};
+  background: ${({ $done, theme }) =>
+    $done ? theme.colors.success : "transparent"};
   color: ${({ theme }) => theme.colors.bgVoid};
 `;
 
 export const StepTitle = styled.span`
   font-size: 0.87rem;
   font-weight: 600;
-  color: ${({ $done, theme }) => ($done ? theme.colors.textMuted : theme.colors.textPrimary)};
-  text-decoration: ${({ $done }) => ($done ? 'line-through' : 'none')};
+  color: ${({ $done, theme }) =>
+    $done ? theme.colors.textMuted : theme.colors.textPrimary};
+  text-decoration: ${({ $done }) => ($done ? "line-through" : "none")};
   display: block;
 `;
 
@@ -177,7 +183,8 @@ export const DeliverStatus = styled.span`
   font-weight: 700;
   padding: 2px 9px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${({ $sent, theme }) => ($sent ? theme.colors.success : theme.colors.textFaint)};
+  color: ${({ $sent, theme }) =>
+    $sent ? theme.colors.success : theme.colors.textFaint};
   background: ${({ theme }) => theme.colors.bgSurfaceAlt};
 `;
 
@@ -248,4 +255,157 @@ export const CommentText = styled.p`
 export const EmptyText = styled.p`
   font-size: 0.82rem;
   color: ${({ theme }) => theme.colors.textFaint};
+`;
+
+export const Feedback = styled.div`
+  margin: -8px 0 18px;
+  padding: 10px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.borderStrong};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  font-size: 0.8rem;
+`;
+
+export const UploadHint = styled.p`
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.textMuted};
+  margin: -8px 0 16px;
+`;
+
+export const FilePickerRow = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+`;
+
+export const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+export const FileChoose = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 9px 12px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.textPrimary};
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.borderStrong};
+  }
+`;
+
+export const FileName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+export const FileActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 7px;
+`;
+
+export const FileAction = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.bgSurfaceAlt};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  font-size: 0.75rem;
+`;
+
+export const DeleteButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: rgba(248, 113, 113, 0.1);
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 0.75rem;
+`;
+
+export const PreviewOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 2, 12, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 400;
+`;
+export const PreviewModal = styled.div`
+  width: min(900px, 100%);
+  height: min(760px, 90vh);
+  background: ${({ theme }) => theme.colors.bgSurfaceRaised};
+  border: 1px solid ${({ theme }) => theme.colors.borderStrong};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+export const PreviewHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  strong {
+    display: block;
+    font-size: 0.82rem;
+  }
+  span {
+    display: block;
+    margin-top: 3px;
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-size: 0.66rem;
+  }
+  button {
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-size: 1.2rem;
+  }
+`;
+export const PreviewBody = styled.div`
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+`;
+export const PreviewFallback = styled.p`
+  max-width: 520px;
+  padding: 30px;
+  text-align: center;
+  color: #1f2937;
+  line-height: 1.55;
+  font-size: 0.86rem;
 `;
