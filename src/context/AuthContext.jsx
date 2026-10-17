@@ -9,7 +9,7 @@ import {
 import { loginRequest } from "../services/authApi";
 
 const AuthContext = createContext(null);
-const SESSION_STORAGE_KEY = "beehub-session-v1";
+const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
 const VALID_ROLES = ["administrador", "aluno", "professor", "visitante"];
 
 function readStoredSession() {
@@ -20,8 +20,7 @@ function readStoredSession() {
     const session = JSON.parse(raw);
     if (
       !VALID_ROLES.includes(session.role) ||
-      !session.user ||
-      (session.role !== "visitante" && !session.accessToken)
+      !session.user
     ) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
@@ -36,6 +35,59 @@ function readStoredSession() {
 function clearLegacyDemoSession() {
   localStorage.removeItem("beehub-auth");
   localStorage.removeItem("beehub-demo-persona-id");
+  sessionStorage.removeItem("beehub-session-v1");
+}
+
+function getAuthenticatedUser(result, role, identifier) {
+  const responseUser =
+    result?.user ||
+    result?.usuario ||
+    result?.data?.user ||
+    result?.data?.usuario ||
+    result?.data ||
+    result ||
+    {};
+  const safeFields = {
+    administrador: ["idAdmin", "userAdmin", "displayName"],
+    aluno: [
+      "rmAluno",
+      "email",
+      "linkFoto",
+      "descricao",
+      "turma",
+      "idCurso",
+      "idGrupo",
+      "displayName",
+    ],
+    professor: [
+      "rmProfessor",
+      "email",
+      "linkFoto",
+      "descricao",
+      "displayName",
+    ],
+  }[role];
+  const user = Object.fromEntries(
+    safeFields
+      .filter((field) => responseUser[field] !== undefined)
+      .map((field) => [field, responseUser[field]]),
+  );
+
+  if (role === "administrador") user.userAdmin ||= identifier;
+  if (role === "aluno") user.rmAluno ||= String(Number(identifier));
+  if (role === "professor") user.rmProfessor ||= String(Number(identifier));
+  if (role === "aluno") {
+    for (const field of ["idCurso", "idGrupo"]) {
+      if (user[field] != null && user[field] !== "") {
+        const value = Number(user[field]);
+        if (!Number.isFinite(value)) {
+          throw new Error(`A resposta de login contém ${field} inválido.`);
+        }
+        user[field] = value;
+      }
+    }
+  }
+  return user;
 }
 
 export function AuthProvider({ children }) {
@@ -45,25 +97,11 @@ export function AuthProvider({ children }) {
     clearLegacyDemoSession();
   }, []);
 
-  const login = useCallback(async (credentials) => {
-    const result = await loginRequest(credentials);
-    if (
-      !result ||
-      typeof result !== "object" ||
-      !VALID_ROLES.includes(result.role) ||
-      result.role === "visitante" ||
-      typeof result.accessToken !== "string" ||
-      !result.accessToken ||
-      !result.user ||
-      typeof result.user !== "object"
-    ) {
-      throw new Error("A resposta de autenticação do servidor é inválida.");
-    }
-
+  const login = useCallback(async ({ role, identifier, password }) => {
+    const result = await loginRequest({ role, identifier, password });
     const nextSession = {
-      role: result.role,
-      user: result.user,
-      accessToken: result.accessToken,
+      role,
+      user: getAuthenticatedUser(result, role, identifier),
     };
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
     setSession(nextSession);
@@ -74,7 +112,6 @@ export function AuthProvider({ children }) {
     const guestSession = {
       role: "visitante",
       user: { displayName: "Visitante" },
-      accessToken: "",
     };
     sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(guestSession));
     setSession(guestSession);
@@ -95,7 +132,6 @@ export function AuthProvider({ children }) {
       role: session?.role || null,
       user: session?.user || null,
       userName: session?.user?.displayName || "",
-      accessToken: session?.accessToken || "",
       login,
       continueAsVisitor,
       logout,

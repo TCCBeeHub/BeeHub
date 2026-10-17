@@ -1,6 +1,6 @@
 # BeeHub
 
-Front-end responsivo em React para gerenciamento acadêmico alinhado ao MER. A aplicação possui login ligado a uma API REST, acesso público para visitantes, alternância entre tema claro e escuro e telas para administrador, aluno e professor.
+Front-end responsivo em React para gerenciamento acadêmico alinhado ao MER. A aplicação possui login por sessão da API Java, acesso público para visitantes, alternância entre tema claro e escuro e telas para administrador, aluno e professor.
 
 ## Executar
 
@@ -10,82 +10,68 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-O servidor de desenvolvimento encaminha `/api` para `http://localhost:8080`, endereço padrão do backend Java. Para outro endereço, altere `BEEHUB_API_PROXY_TARGET` no `.env`. Em ambientes publicados, configure `VITE_API_BASE_URL` para a URL base da API e um proxy reverso quando front-end e API estiverem em origens diferentes.
+O cliente usa `import.meta.env.VITE_API_BASE_URL` como URL base da API. Para desenvolvimento local, configure `VITE_API_BASE_URL=/api` e `BEEHUB_API_PROXY_TARGET=https://beehub.onrender.com` (ou o endereço local do backend). O proxy Vite encaminha `/api/...` para as rotas correspondentes do backend, sem o prefixo `/api`, evitando CORS no navegador durante o desenvolvimento. Para implantação, configure a URL pública da API e assegure no servidor CORS com origem explícita e suporte a credenciais; o proxy Vite não é usado em produção.
 
 ```sh
 npm run build
 npm run lint
 ```
 
-Sem a API disponível, o front-end exibe o erro de conexão e não cria usuários, sessões, entidades ou dados de exemplo. A interface não deve ser considerada um sistema de autenticação enquanto o backend não estiver em execução.
+Sem a API disponível, o front-end exibe o erro de conexão e não cria usuários, sessões, entidades ou dados de exemplo.
 
 ## Contrato de integração com o backend Java
 
-A URL base é `VITE_API_BASE_URL` (padrão `/api`). Os nomes de propriedades abaixo são os usados pelo front-end e seguem os atributos do MER.
+Todas as chamadas HTTP incluem `credentials: "include"` para o navegador enviar e receber o cookie de sessão `JSESSIONID`. Não há token JWT nem cabeçalho `Authorization`. Para chamadas cross-origin em produção, o backend deve aceitar credenciais e a origem exata do frontend. A API publicada foi observada respondendo `Access-Control-Allow-Origin: *` sem `Access-Control-Allow-Credentials`, configuração incompatível com cookies cross-origin; essa configuração precisa ser corrigida no backend ou resolvida por um proxy same-origin de produção.
 
 ### Login e sessão
 
-Na tela inicial, três cards direcionam o acesso de **Aluno**, **Professor** e **Visitante**. Os cards de aluno e professor abrem o formulário de credenciais; o visitante segue para o conteúdo público sem autenticação. O acesso administrativo continua disponível por um link separado, sem adicionar um quarto card. A seleção só organiza a navegação: o papel e as permissões efetivos continuam sendo determinados pela resposta do backend.
+Na tela inicial, três cards direcionam o acesso de **Aluno**, **Professor** e **Visitante**. O perfil escolhido seleciona o endpoint de login; as permissões continuam sendo verificadas pelo backend. O acesso administrativo permanece em um link separado.
 
-`POST /api/auth/login`
+| Perfil | Endpoint | Corpo JSON enviado |
+| --- | --- | --- |
+| Administrador | `POST /admin/login` | `{ "user": "admin", "senha": "..." }` |
+| Aluno | `POST /aluno/login` | `{ "rmAluno": 2026001, "senha": "..." }` |
+| Professor | `POST /professor/login` | `{ "rmProfessor": 12345, "senha": "..." }` |
 
-```json
-{
-  "identifier": "RM do aluno/professor ou usuário do administrador",
-  "password": "senha"
-}
-```
+Os RMs são enviados como números. Após login aceito, o backend deve criar a sessão e retornar o cookie `JSESSIONID`. O front-end não espera `accessToken`, não salva credenciais e não envia cabeçalho de autorização. Para carregar os vínculos do aluno, a resposta JSON de sucesso deve incluir um objeto de usuário seguro com `idCurso` (e, se disponível, `idGrupo`, `turma` e `displayName`); nenhuma senha ou hash deve ser retornado. O identificador do aluno/professor é preservado a partir do RM informado se não vier no corpo.
 
-Resposta `200 OK`:
+Visitantes não fazem login e não recebem sessão autenticada. As chamadas públicas também usam cookies e recebem somente os dados públicos permitidos pelo backend. Em resposta `401` às chamadas autenticadas, a interface limpa a sessão visual local e retorna à tela de login.
 
-```json
-{
-  "accessToken": "<token>",
-  "role": "aluno",
-  "user": {
-    "displayName": "Nome para exibição",
-    "rmAluno": "2026001",
-    "email": "aluno@etec.sp.gov.br",
-    "idCurso": 1,
-    "idGrupo": 1
-  }
-}
-```
-
-`role` deve ser `aluno`, `professor` ou `administrador`, conforme resolvido e autorizado pelo servidor — nunca é selecionado pelo usuário no formulário. O objeto `user` deve conter os atributos públicos da entidade correspondente ao papel e, opcionalmente, `displayName`. O token é enviado nas chamadas autenticadas como `Authorization: Bearer <accessToken>` e fica em `sessionStorage` até o logout, o fim da sessão do navegador ou uma resposta `401`. O back-end deve retornar `401` para credenciais inválidas ou expiradas e nunca incluir senhas ou hashes na resposta.
-
-Visitantes não fazem login e não recebem sessão autenticada. O link **Continuar como visitante** acessa somente a representação pública devolvida por `GET /api/portal`.
+O backend deve disponibilizar um endpoint de logout que invalide a sessão para que o botão **Sair** também encerre a sessão no servidor. Esse endpoint não foi informado e, portanto, não é chamado pelo frontend atualmente.
 
 ### Dados do painel e escopo
 
-`GET /api/portal` devolve um objeto com arrays para todas as oito entidades do MER:
+O front-end não chama um endpoint agregado `/portal`; ele combina as rotas existentes:
 
-```json
-{
-  "administradores": [],
-  "etecs": [],
-  "cursos": [],
-  "professores": [],
-  "alunos": [],
-  "orientacoes": [],
-  "grupos": [],
-  "tccs": []
-}
-```
+| Dados | Endpoint(s) usados |
+| --- | --- |
+| ETECs | `GET /etec` |
+| Cursos | `GET /cursos/{codEtec}` para cada ETEC |
+| Alunos de um curso | `GET /aluno/curso/{idCurso}` |
+| Professores de um curso | `GET /professor/curso/{idCurso}` |
+| Orientações | `GET /orientacao` |
+| Grupos | `GET /grupo` (o backend deve aplicar o escopo da sessão para perfis autenticados) |
+| TCCs | `GET /tcc`; visitante vê apenas `APROVADO` ou `PUBLICADO` |
+| Administradores | `GET /admin` (painel administrativo) |
 
-O servidor deve filtrar a resposta pelo usuário autenticado. Para aluno, retorne somente seu próprio perfil e os cursos, grupos, TCCs e orientações necessários para representar seus vínculos. Para professor, retorne somente o perfil e os registros ligados às suas orientações. Administradores podem receber os cadastros necessários à gestão. Para visitante, retorne cursos, ETECs associadas e apenas TCCs com status `APROVADO` ou `PUBLICADO`; os demais arrays ficam vazios. Todas as propriedades de senha (`senha` e `senhaAdmin`) devem ser omitidas. A interface também rejeita respostas incompletas ou que contenham esses campos.
+As rotas de lista devem retornar arrays JSON (também são aceitos arrays sob `data`, `content` ou `items`). Para carregar associações, o cliente consulta alunos/professores pelos IDs de curso encontrados. A resposta é filtrada no frontend para mostrar ao aluno apenas seu próprio perfil/grupo/TCC e ao professor somente orientações, turmas, grupos e TCCs vinculados. O backend deve ainda proteger cada endpoint e filtrar sua resposta por sessão; os filtros do navegador não são uma barreira de segurança.
 
-Os filtros da interface servem para navegação e apresentação; **não substituem autorização**. O backend Java deve autenticar e autorizar cada leitura e alteração, proteger rotas e validar novamente todas as regras de negócio.
+`GET /grupo` foi descrito como uma consulta administrativa, mas as telas de aluno/professor também precisam dos grupos vinculados. Para essas telas funcionarem, o backend deve permitir essa rota com resultado escopado pela sessão ou fornecer outra rota autenticada equivalente. Todas as respostas de entidades devem omitir `senha`, `senhaAdmin` e hashes.
 
 ### Operações das entidades
 
-| Operação | Endpoint | Uso |
-| --- | --- | --- |
-| Criar | `POST /api/{colecao}` | Corpo JSON com atributos da entidade; ao criar conta de aluno, professor ou administrador, inclui `senha` ou `senhaAdmin` uma única vez |
-| Atualizar | `PUT /api/{colecao}/{chave}` | Corpo JSON com atributos atualizados; a chave é codificada na URL |
-| Excluir | `DELETE /api/{colecao}/{chave}` | Exclusão validada pelo backend, incluindo dependências |
+| Entidade | Rota base |
+| --- | --- |
+| Administradores | `/admin` |
+| ETECs | `/etec` |
+| Cursos | `/cursos` |
+| Professores | `/professor` |
+| Alunos | `/aluno` |
+| Orientações | `/orientacao` |
+| Grupos | `/grupo` |
+| TCCs | `/tcc` |
 
-`{colecao}` usa os nomes `administradores`, `etecs`, `cursos`, `professores`, `alunos`, `orientacoes`, `grupos` e `tccs`. Após uma alteração aceita, o front-end recarrega `GET /api/portal`. Pode-se responder `200` ou `204` às operações de escrita. Erros devem usar um status HTTP adequado e, quando possível, JSON com `message` ou `detail` para exibição. O servidor deve armazenar senhas somente com hash seguro e nunca devolvê-las em leituras, atualizações ou detalhes.
+Para criar, atualizar e excluir, o cliente usa respectivamente `POST {rota-base}`, `PUT {rota-base}/{chave}` e `DELETE {rota-base}/{chave}`. O corpo de criação de conta inclui `senha` (ou `senhaAdmin`) uma única vez. Após uma alteração, o cliente recarrega as listas pelos endpoints acima. Pode-se responder `200` ou `204` às operações de escrita. Erros devem usar status HTTP adequado e, quando possível, JSON com `message` ou `detail`. O servidor deve armazenar senhas somente com hash seguro e nunca devolvê-las.
 
 O MER representado inclui: Administrador (`idAdmin`, `userAdmin`, `senhaAdmin`); ETEC (`codEtec`, `nome`); Curso (`idCurso`, `nome`, `quantAlunos`, `periodo`, `codEtec`); Aluno (`rmAluno`, `senha`, `email`, `linkFoto`, `descricao`, `turma`, `idGrupo`, `idCurso`); Professor (`rmProfessor`, `senha`, `email`, `linkFoto`, `descricao`); Orientação (`idOrientacao`, `idCurso`, `rmProfessor`, `turma`); Grupo (`idGrupo`, `nomeGrupo`, `idOrientacao`, `linkFoto`, `ano`, `capacidadeMaxima`); TCC (`codTCC`, `tema`, `linkSlide`, `linkArtigo`, `status`, `idGrupo`, `descricao`, `linkSite`, `dataCriacao`).
 
@@ -100,7 +86,7 @@ As regras de relação atualmente verificadas também na interface incluem refer
 | Professor | Próprio perfil, orientações, grupos e TCCs sob sua orientação; conversa ainda não integrada |
 | Administrador | Gestão das oito entidades do MER |
 
-Não existe papel de coordenador. O chat não faz parte das entidades do MER: a rota contém somente mensagens estáticas de exemplo, o envio é desativado e a tela avisa **“Módulo previsto para a próxima etapa”**. A autenticação, os dados do painel e as alterações de entidades não têm fallback local.
+Não existe papel de coordenador. O chat não faz parte das entidades do MER: a rota contém somente mensagens estáticas de exemplo, o envio é desativado e a tela avisa **“Módulo previsto para a próxima etapa”**. A autenticação e os dados do painel não têm fallback local.
 
 ## Tema e organização
 
@@ -109,12 +95,12 @@ O tema claro/escuro está disponível na tela de login e no painel e a preferên
 - `src/App.jsx`: rotas públicas, autenticação e painel.
 - `src/containers/portal/index.jsx`: login, navegação por papel, painéis, formulários e chat futuro.
 - `src/containers/portal/portal.css`: visual claro/escuro e layout responsivo.
-- `src/context/AuthContext.jsx`: sessão autenticada e acesso visitante.
+- `src/context/AuthContext.jsx`: estado visual da sessão e acesso visitante; a autenticação real é mantida pelo cookie do backend.
 - `src/context/ThemeContext.jsx`: preferência de tema.
-- `src/services/httpClient.js`: chamadas HTTP, token Bearer e erros.
-- `src/services/authApi.js`: contrato de login.
-- `src/services/portalApi.js`: leitura e operações do MER.
+- `src/services/httpClient.js`: chamadas HTTP com cookie de sessão e tratamento de erros.
+- `src/services/authApi.js`: endpoints e corpos de login por perfil.
+- `src/services/portalApi.js`: leitura por endpoints e operações do MER.
 - `src/data/merModels.d.ts`: contratos de entidades e payloads da API.
 - `src/assets/images/`: imagens de marca existentes e preservadas.
 
-O backend do colega deve implementar ou adaptar os endpoints e payloads deste contrato antes que o login e os cadastros possam operar. Não há credenciais, dados de teste ou servidor Java incluídos nesta entrega.
+O frontend ainda precisa ser validado contra a API Java real; não há credenciais ou servidor Java incluídos nesta entrega.

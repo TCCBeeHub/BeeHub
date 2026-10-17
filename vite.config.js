@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.BEEHUB_API_PROXY_TARGET || 'http://127.0.0.1:8080',
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

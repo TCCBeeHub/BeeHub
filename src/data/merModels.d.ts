@@ -85,21 +85,19 @@ export interface MerData {
   tccs: Tcc[];
 }
 
-export interface LoginRequest {
-  identifier: string;
-  password: string;
+export type LoginRequest =
+  | { user: string; senha: string }
+  | { rmAluno: number; senha: string }
+  | { rmProfessor: number; senha: string };
+
+export interface LoginResponse {
+  user?: AuthenticatedUser & { displayName?: string };
 }
 
 export type AuthenticatedUser =
   | Pick<Administrador, "idAdmin" | "userAdmin">
   | Pick<Aluno, "rmAluno" | "email" | "idCurso" | "idGrupo">
   | Pick<Professor, "rmProfessor" | "email">;
-
-export interface LoginResponse {
-  accessToken: string;
-  role: Exclude<Perfil, "visitante">;
-  user: AuthenticatedUser & { displayName?: string };
-}
 
 export interface PortalData {
   administradores: Array<Omit<Administrador, "senhaAdmin">>;
