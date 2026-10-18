@@ -32,16 +32,15 @@ public class CursoController {
         return cursoService.cadastrarCurso(dto);
     }
 
-    @PutMapping("/{codEtec}/{idCurso}")
+    @PutMapping("/{idCurso}")
     @ResponseStatus(HttpStatus.OK)
     public CursoResumoDTO atualizarCurso(@PathVariable Long idCurso,
-                          @PathVariable String codEtec,
                           @Valid @RequestBody CursoRequestAtualizarDTO dto,
                           HttpSession session){
 
         sessaoValidator.validarAdmin(session);
 
-        return cursoService.atualizarCurso(idCurso, codEtec, dto);
+        return cursoService.atualizarCurso(idCurso, dto);
     }
 
     @GetMapping("/{codEtec}/{idCurso}")

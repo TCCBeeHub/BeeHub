@@ -2,7 +2,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
   /\/+$/,
   "",
 );
-const SESSION_STORAGE_KEY = "beehub-session-v1";
+const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -12,46 +12,44 @@ export class ApiError extends Error {
   }
 }
 
-function getAccessToken() {
-  try {
-    const session = JSON.parse(
-      sessionStorage.getItem(SESSION_STORAGE_KEY) || "null",
-    );
-    return session?.accessToken || "";
-  } catch {
-    return "";
-  }
-}
-
-export async function apiRequest(path, { method = "GET", body, signal } = {}) {
+export async function apiRequest(
+  path,
+  { method = "GET", body, signal, clearSessionOnUnauthorized = true } = {},
+) {
   const headers = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-
-  const accessToken = getAccessToken();
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
+      credentials: "include",
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });
-  } catch (error) {
+  } catch {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new Error(
       "Não foi possível conectar ao servidor. Verifique se a API Java está disponível.",
     );
   }
 
-  const contentType = response.headers.get("content-type") || "";
-  const responseBody = contentType.includes("application/json")
-    ? await response.json()
-    : null;
+  const responseText = await response.text();
+  let responseBody = null;
+  if (responseText) {
+    try {
+      responseBody = JSON.parse(responseText);
+    } catch {
+      if (response.ok) {
+        throw new Error("A API retornou uma resposta JSON inválida.");
+      }
+      responseBody = { message: responseText };
+    }
+  }
 
   if (!response.ok) {
-    if (response.status === 401 && accessToken) {
+    if (response.status === 401 && clearSessionOnUnauthorized) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       window.dispatchEvent(new Event("beehub:session-expired"));
     }

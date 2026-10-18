@@ -238,6 +238,10 @@ function getPathRecordId(pathname) {
   return parts[1] ? decodeURIComponent(parts[1]) : "";
 }
 
+function matchesId(left, right) {
+  return left != null && right != null && String(left) === String(right);
+}
+
 function filterCollection(role, user, data, collection) {
   const rows = data[collection] || [];
   if (role === "administrador") return rows;
@@ -252,34 +256,39 @@ function filterCollection(role, user, data, collection) {
   }
   if (role === "aluno") {
     if (!user) return [];
+    const ownStudent = data.alunos.find((item) =>
+      matchesId(item.rmAluno, user.rmAluno),
+    );
+    const ownGroupId = user.idGrupo ?? ownStudent?.idGrupo;
+    const ownCourseId = user.idCurso ?? ownStudent?.idCurso;
     const ownGroup = data.grupos.find(
-      (item) => item.idGrupo === Number(user.idGrupo),
+      (item) => matchesId(item.idGrupo, ownGroupId),
     );
     const ownCourse = data.cursos.find(
-      (item) => item.idCurso === Number(user.idCurso),
+      (item) => matchesId(item.idCurso, ownCourseId),
     );
-    if (collection === "alunos") return rows.filter((item) => item.rmAluno === user.rmAluno);
-    if (collection === "grupos") return rows.filter((item) => item.idGrupo === ownGroup?.idGrupo);
-    if (collection === "tccs") return rows.filter((item) => item.idGrupo === ownGroup?.idGrupo);
-    if (collection === "cursos") return rows.filter((item) => item.idCurso === ownCourse?.idCurso);
+    if (collection === "alunos") return rows.filter((item) => matchesId(item.rmAluno, user.rmAluno));
+    if (collection === "grupos") return rows.filter((item) => matchesId(item.idGrupo, ownGroup?.idGrupo));
+    if (collection === "tccs") return rows.filter((item) => matchesId(item.idGrupo, ownGroup?.idGrupo));
+    if (collection === "cursos") return rows.filter((item) => matchesId(item.idCurso, ownCourse?.idCurso));
     return [];
   }
   if (role === "professor") {
     if (!user) return [];
     const orientationIds = new Set(
       data.orientacoes
-        .filter((item) => item.rmProfessor === user.rmProfessor)
+        .filter((item) => matchesId(item.rmProfessor, user.rmProfessor))
         .map((item) => item.idOrientacao),
     );
     const groupIds = new Set(
       data.grupos
-        .filter((item) => orientationIds.has(item.idOrientacao))
+        .filter((item) => [...orientationIds].some((id) => matchesId(id, item.idOrientacao)))
         .map((item) => item.idGrupo),
     );
-    if (collection === "professores") return rows.filter((item) => item.rmProfessor === user.rmProfessor);
-    if (collection === "orientacoes") return rows.filter((item) => item.rmProfessor === user.rmProfessor);
-    if (collection === "grupos") return rows.filter((item) => groupIds.has(item.idGrupo));
-    if (collection === "tccs") return rows.filter((item) => groupIds.has(item.idGrupo));
+    if (collection === "professores") return rows.filter((item) => matchesId(item.rmProfessor, user.rmProfessor));
+    if (collection === "orientacoes") return rows.filter((item) => matchesId(item.rmProfessor, user.rmProfessor));
+    if (collection === "grupos") return rows.filter((item) => [...groupIds].some((id) => matchesId(id, item.idGrupo)));
+    if (collection === "tccs") return rows.filter((item) => [...groupIds].some((id) => matchesId(id, item.idGrupo)));
     return [];
   }
   return [];
@@ -609,7 +618,11 @@ export function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login({ identifier: identifier.trim(), password });
+      await login({
+        role: selectedAccess,
+        identifier: identifier.trim(),
+        password,
+      });
       navigate("/", { replace: true });
     } catch (loginError) {
       setError(
@@ -707,12 +720,20 @@ export function LoginPage() {
             </p>
             <form className="login-form" onSubmit={submitLogin}>
               <label className="form-field">
-                <span>RM ou usuário administrador</span>
+                <span>
+                  {selectedAccess === "administrador"
+                    ? "Usuário administrador"
+                    : `RM do ${selectedAccess}`}
+                </span>
                 <input
                   autoComplete="username"
                   value={identifier}
                   onChange={(event) => setIdentifier(event.target.value)}
-                  placeholder="Digite seu RM ou usuário"
+                  placeholder={
+                    selectedAccess === "administrador"
+                      ? "Digite seu usuário"
+                      : "Digite seu RM"
+                  }
                   required
                 />
               </label>
@@ -773,7 +794,7 @@ function ThemeToggle() {
 }
 
 export function PortalApp() {
-  const { role, user, logout, accessToken } = useAuth();
+  const { role, user, logout } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -791,7 +812,7 @@ export function PortalApp() {
     setLoading(true);
     setLoadError("");
     try {
-      setData(await getPortalData({ signal }));
+      setData(await getPortalData({ role, user, signal }));
     } catch (error) {
       if (signal?.aborted) return;
       setLoadError(
@@ -802,12 +823,12 @@ export function PortalApp() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [role, user]);
   useEffect(() => {
     const controller = new AbortController();
     refreshPortal(controller.signal);
     return () => controller.abort();
-  }, [refreshPortal, role, accessToken]);
+  }, [refreshPortal]);
   const section = getSectionFromPath(location.pathname);
   const menu = NAV_ITEMS[role] || [];
   const isDetails = ["tcc-detail", "curso-detail"].includes(section);

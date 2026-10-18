@@ -58,19 +58,15 @@ public class CursoService {
     }
 
     @Transactional
-    public CursoResumoDTO atualizarCurso(Long idCurso, String codEtec, CursoRequestAtualizarDTO dto){
-        String codEtecNormalizado = codEtec.trim();
-
-        validarCodEtec(codEtecNormalizado);
-
-        Curso atualizarInfoCurso = cursoRepository.findCursoByIdCursoAndEtec_CodEtec(idCurso, codEtecNormalizado)
+    public CursoResumoDTO atualizarCurso(Long idCurso, CursoRequestAtualizarDTO dto){
+        Curso atualizarInfoCurso = cursoRepository.findCursoByIdCurso(idCurso)
                 .orElseThrow(CursoNaoEncontradoException::new);
 
         String novoNome = dto.nome().trim();
         String novoPeriodo = dto.periodo().trim();
 
         if(cursoRepository.existsByNomeAndEtec_CodEtecAndIdCursoNotAndPeriodo
-                (novoNome, codEtecNormalizado, idCurso, novoPeriodo)){
+                (novoNome, atualizarInfoCurso.getEtec().getCodEtec(), idCurso, novoPeriodo)){
             throw new CursoJaEncontradoException("Já existe um curso com este nome na Etec " + atualizarInfoCurso.getEtec().getCodEtec() + "!");
         }
 
@@ -98,10 +94,7 @@ public class CursoService {
         return new CursoResponseDTO(
                 curso.getIdCurso(),
                 curso.getNome(),
-                new EtecResumoDTO(
-                        curso.getEtec().getCodEtec(),
-                        curso.getEtec().getNome()
-                ),
+                curso.getEtec().getCodEtec(),
                 alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
                 curso.getPeriodo()
         );
@@ -118,10 +111,7 @@ public class CursoService {
                 .map(curso -> new CursoResponseDTO(
                         curso.getIdCurso(),
                         curso.getNome(),
-                        new EtecResumoDTO(
-                                curso.getEtec().getCodEtec(),
-                                curso.getEtec().getNome()
-                        ),
+                        curso.getEtec().getCodEtec(),
                         alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
                         curso.getPeriodo()))
                 .collect(Collectors.toList());
