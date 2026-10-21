@@ -6,6 +6,7 @@ import com.beehub.dto.comum.EtecResumoDTO;
 import com.beehub.dto.comum.UsuarioResumoDTO;
 import com.beehub.dto.request.AlunoLoginRequestDTO;
 import com.beehub.dto.request.AlunoRequestDTO;
+import com.beehub.dto.response.AlunoLoginResponseDTO;
 import com.beehub.dto.response.AlunoResponseDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarTurmaDTO;
@@ -76,17 +77,20 @@ public class AlunoService {
     }
 
 
-    public UsuarioResumoDTO loginAluno(AlunoLoginRequestDTO dto){
+    public AlunoLoginResponseDTO loginAluno(AlunoLoginRequestDTO dto){
         Long rm = dto.rmAluno();
         Aluno alunoBanco = alunoRepository.findByRmAluno(rm)
                 .orElseThrow(() -> new UsuarioOuSenhaIncorretaException("Usuário ou senha inválidos!"));
 
         usuarioValidator.validarSenha(dto.senha(), alunoBanco.getSenha());
 
-        return new UsuarioResumoDTO(
+        return new AlunoLoginResponseDTO(
                 alunoBanco.getRmAluno(),
                 alunoBanco.getNome(),
-                alunoBanco.getLinkFoto()
+                alunoBanco.getLinkFoto(),
+                alunoBanco.getCurso().getIdCurso(),
+                alunoBanco.getGrupo() != null ? alunoBanco.getGrupo().getIdGrupo() : null,
+                alunoBanco.getTurma() != null ? alunoBanco.getTurma().name() : null
         );
     }
 

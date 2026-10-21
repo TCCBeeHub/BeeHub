@@ -111,8 +111,8 @@ const COLLECTION_CONFIG = {
     label: "Alunos",
     singular: "aluno",
     key: "rmAluno",
-    columns: ["rmAluno", "email", "idCurso", "idGrupo", "turma"],
-    fields: ["rmAluno", "email", "linkFoto", "descricao", "turma", "idCurso", "idGrupo"],
+    columns: ["rmAluno", "nome", "idCurso", "idGrupo", "turma"],
+    fields: ["rmAluno", "nome", "email", "linkFoto", "descricao", "turma", "idCurso", "idGrupo", "senha"],
   },
   orientacoes: {
     label: "Orientações",

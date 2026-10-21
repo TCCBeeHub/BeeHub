@@ -50,7 +50,7 @@ async function getList(
       path,
     );
   } catch (error) {
-    // Se a rota der 404 (não existe no backend) e pedimos para ignorar, retorna vazio
+    // Ignorar 404 e 405 nas rotas base que o backend ainda não possui listagem global
     if (ignore404 && (error.status === 404 || error.status === 405)) {
       console.warn(`[Aviso] Rota não implementada no backend: GET ${path}`);
       return [];
@@ -124,13 +124,11 @@ export async function getPortalData({ role, user, signal } = {}) {
   const publicRequestOptions =
     role === "visitante" ? { clearSessionOnUnauthorized: false } : undefined;
 
-  // 1. ETECs (Público)
   const etecs = normalizeRecords(
     await getList("/etec", signal, publicRequestOptions),
     "etecs",
   );
 
-  // 2. Cursos (Público)
   const cursoLists = await Promise.all(
     etecs.map((etec) =>
       getList(
@@ -143,26 +141,16 @@ export async function getPortalData({ role, user, signal } = {}) {
   const cursos = normalizeRecords(cursoLists.flat(), "cursos");
   const uniqueCursos = uniqueById(cursos, "idCurso");
 
-  // 3. Se for visitante, para aqui e só busca TCCs públicos
   if (role === "visitante") {
     const tccs = normalizeRecords(
       await getList("/tcc", signal, publicRequestOptions),
       "tccs",
     ).filter((tcc) => ["APROVADO", "PUBLICADO"].includes(tcc.status));
     return {
-      administradores: [],
-      etecs,
-      cursos: uniqueCursos,
-      professores: [],
-      alunos: [],
-      orientacoes: [],
-      grupos: [],
-      tccs,
+      administradores: [], etecs, cursos: uniqueCursos, professores: [], alunos: [], orientacoes: [], grupos: [], tccs,
     };
   }
 
-  // 4. Para admin, aluno e professor, busca listas gerais
-  // Nota: /orientacao e /admin não têm listagem global no backend ainda, então ignoramos o 404.
   const baseRequests = [
     getList("/orientacao", signal, { ignore404: true }),
     getList("/grupo", signal),
@@ -186,8 +174,6 @@ export async function getPortalData({ role, user, signal } = {}) {
       ? allOrientations.filter((item) => sameId(item.rmProfessor, user?.rmProfessor))
       : [];
 
-  // Fallback: se o professor não achou orientações na lista global (que pode ter dado 404),
-  // busca especificamente as dele.
   if (role === "professor" && professorOrientations.length === 0 && user?.rmProfessor) {
     try {
       const profOrients = await getList(`/orientacao/professor/${user.rmProfessor}`, signal);
@@ -210,13 +196,11 @@ export async function getPortalData({ role, user, signal } = {}) {
   }
   
   if (role === "professor" && courseIds.length === 0) {
-    // Se o professor não tem orientações, retorna vazio sem quebrar a tela
     return {
       administradores: [], etecs, cursos: [], professores: [], alunos: [], orientacoes: [], grupos: [], tccs: [],
     };
   }
 
-  // 5. Alunos e Professores dos cursos
   const memberLists = await Promise.all(
     courseIds.flatMap((idCurso) => [
       getList(`/aluno/curso/${encodeURIComponent(String(idCurso))}`, signal),
@@ -245,7 +229,6 @@ export async function getPortalData({ role, user, signal } = {}) {
     throw new Error("O curso do aluno retornado pela API não corresponde ao curso da sessão.");
   }
 
-  // 6. Filtros finais por perfil
   const orientationRows =
     role === "professor"
       ? professorOrientations
@@ -320,12 +303,30 @@ export async function getPortalData({ role, user, signal } = {}) {
 export function createEntity(collection, record) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
+
+  // Ajuste para Aluno: envia o idCurso na URL
+  if (collection === "alunos") {
+    return apiRequest(`${path}/curso/${record.idCurso}`, {
+      method: "POST",
+      body: record,
+    });
+  }
+
   return apiRequest(path, { method: "POST", body: record });
 }
 
 export function updateEntity(collection, key, record) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
+
+  // Ajuste para Curso: envia o codEtec junto com o idCurso na URL
+  if (collection === "cursos") {
+    return apiRequest(`${path}/${record.codEtec}/${encodeURIComponent(String(key))}`, {
+      method: "PUT",
+      body: record,
+    });
+  }
+
   return apiRequest(
     `${path}/${encodeURIComponent(String(key))}`,
     { method: "PUT", body: record },

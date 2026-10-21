@@ -1,5 +1,6 @@
 package com.beehub.controller;
 
+import com.beehub.dto.response.AlunoLoginResponseDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarTurmaDTO;
 import com.beehub.enums.GrupoOrientacao;
 import com.beehub.security.SessaoValidator;
@@ -36,10 +37,10 @@ public class AlunoController {
 
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public UsuarioResumoDTO loginAluno(@Valid @RequestBody AlunoLoginRequestDTO dto,
-                                       HttpSession session){
+    public AlunoLoginResponseDTO loginAluno(@Valid @RequestBody AlunoLoginRequestDTO dto,
+                                            HttpSession session){
 
-        UsuarioResumoDTO aluno = alunoService.loginAluno(dto);
+        AlunoLoginResponseDTO aluno = alunoService.loginAluno(dto);
 
         session.setAttribute(
                 SessaoValidator.ALUNO,
