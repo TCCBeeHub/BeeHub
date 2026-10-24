@@ -116,33 +116,24 @@ public class TccService {
         );
     }
 
-//    @Transactional(readOnly = true)
-//    public TccUsuarioResumoDTO listarTcc(Long idGrupo){
-//        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
-//                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
-//
-//        Tcc buscarTcc = tccRepository.findByGrupo_IdGrupo(grupo.getIdGrupo())
-//                .orElseThrow(() -> new TccNaoEncontradoException("Este grupo não possui TCC!"));
-//
-//
-//        List<UsuarioResumoDTO> alunosDTO = grupo.getAlunos().stream()
-//                .map(a -> new UsuarioResumoDTO(
-//                        a.getRmAluno(),
-//                        a.getNome(),
-//                        a.getLinkFoto()
-//                ))
-//                .toList();
-//
-//        return new TccUsuarioResumoDTO(
-//                buscarTcc.getCodTcc(),
-//                grupo.getNomeGrupo(),
-//                buscarTcc.getTema(),
-//                buscarTcc.getDescricao(),
-//                buscarTcc.getStatus(),
-//                alunosDTO,
-//                grupo.getOrientacao().getProfessor().getNome()
-//        );
-//    }
+    @Transactional(readOnly = true)
+    public TccResumoDTO listarTccPublico(Long codTcc){
+
+        Tcc tcc = tccRepository.findByCodTcc(codTcc)
+                .orElseThrow(() -> new TccNaoEncontradoException("Seu grupo não possui TCC!"));
+
+        if (tcc.getStatus() != StatusTcc.APROVADO && tcc.getStatus() != StatusTcc.PUBLICADO) {
+            throw new TccNaoPublicadoException("Este TCC não está disponível para visualização pública!");
+        }
+
+        return new TccResumoDTO(
+                tcc.getCodTcc(),
+                tcc.getGrupo().getNomeGrupo(),
+                tcc.getTema(),
+                tcc.getDescricao(),
+                tcc.getStatus()
+        );
+    }
 
     @Transactional(readOnly = true)
     public TccResumoDTO listarTccDoGrupo(Long idGrupo, Long rmUsuario){

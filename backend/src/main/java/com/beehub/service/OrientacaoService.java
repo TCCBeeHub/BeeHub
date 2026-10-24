@@ -59,6 +59,19 @@ public class OrientacaoService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrientacaoResponseDTO> listarTodasOrientacoes(){
+        List<Orientacao> orientacaos = orientacaoRepository.findAll();
+
+        return orientacaos.stream()
+                .map(orientacao -> new OrientacaoResponseDTO(
+                        orientacao.getCurso().getNome(),
+                        orientacao.getCurso().getEtec().getNome(),
+                        orientacao.getTurma()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<OrientacaoResponseDTO> listarOrientacoes(Long rmProfessor){
         if(!professorRepository.existsByRmProfessor(rmProfessor)){
             throw new UsuarioNaoEncontradoException("O rm deste professor não existe!");

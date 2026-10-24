@@ -46,18 +46,21 @@ public class CursoController {
     @GetMapping("/{codEtec}/{idCurso}")
     @ResponseStatus(HttpStatus.OK)
     public CursoResponseDTO listarCurso(@PathVariable Long idCurso,
-                                        @PathVariable String codEtec,
-                                        HttpSession session){
-        sessaoValidator.validarAcessoInterno(session);
+                                        @PathVariable String codEtec){
         return cursoService.listarCurso(idCurso, codEtec);
     }
 
     @GetMapping("/{codEtec}")
     @ResponseStatus(HttpStatus.OK)
-    public List<CursoResponseDTO> listarCursos(@PathVariable String codEtec,
-                                               HttpSession session){
-        sessaoValidator.validarAcessoInterno(session);
+    public List<CursoResponseDTO> listarCursos(@PathVariable String codEtec){
         return cursoService.listarCursos(codEtec);
+    }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public List<CursoResponseDTO> listarTodosOsCursos(HttpSession session){
+        sessaoValidator.validarAdmin(session);
+        return cursoService.listarTodosOsCursos();
     }
 
     @DeleteMapping("/{idCurso}")

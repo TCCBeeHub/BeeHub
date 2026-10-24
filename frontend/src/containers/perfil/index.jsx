@@ -1,34 +1,48 @@
 import { useRef, useState, useEffect } from "react";
 import { Camera } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { updateEntity } from "../../services/portalApi";
 import * as S from "./styles";
 
-export function Perfil() {
-  const { userName, role } = useAuth();
+// Recebe os dados reais do usuário/aluno via props
+export function Perfil({ data, user, role, onUpdate }) {
   const fileInputRef = useRef(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [salvo, setSalvo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [erro, setErro] = useState("");
 
-  // Resgatando RM e Escola salvos no login (ou valores vazios se não encontrar)
-  const rmSalvo = localStorage.getItem("usuarioRM") || "";
-  const escolaSalva =
-    localStorage.getItem("usuarioEscola") ||
-    (role === "professor" ? "ETEC (Professor)" : "");
-  const emailSalvo = localStorage.getItem("usuarioEmail") || "";
-  const sobreMimSalvo = localStorage.getItem("usuarioSobreMim") || "";
+  // Pega os dados do aluno se for aluno, ou do professor se for professor
+  const alunoOriginal = role === "aluno" ? data.alunos.find(a => String(a.rmAluno) === String(user.rmAluno)) : null;
+  const professorOriginal = role === "professor" ? data.professores.find(p => String(p.rmProfessor) === String(user.rmProfessor)) : null;
+  
+  const perfilOriginal = alunoOriginal || professorOriginal;
 
   const [form, setForm] = useState({
-    nome: userName || "", // Nome vem do AuthContext corretamente agora
-    rm: rmSalvo, // R.M. ou Registro puxado do localStorage
-    escola: escolaSalva, // Escola selecionada no login
-    curso: "Análise e Desenvolvimento de Sistemas", // Simulação de banco de dados
-    serie: "3º Módulo", // Simulação de banco de dados
-    sobreMim: sobreMimSalvo,
+    nome: perfilOriginal?.nome || "",
+    rm: alunoOriginal?.rmAluno || professorOriginal?.rmProfessor || "",
+    email: perfilOriginal?.email || "",
+    escola: alunoOriginal?.curso?.etec?.nome || professorOriginal?.orientacao?.curso?.etec?.nome || "",
+    curso: alunoOriginal?.curso?.nome || "—",
+    serie: alunoOriginal?.turma ? `Turma ${alunoOriginal.turma}` : "—",
+    sobreMim: perfilOriginal?.descricao || "",
+    linkFoto: perfilOriginal?.linkFoto || "",
   });
 
   useEffect(() => {
-    setForm((prev) => ({ ...prev, nome: userName || prev.nome }));
-  }, [userName]);
+    if (perfilOriginal) {
+      setForm({
+        nome: perfilOriginal.nome || "",
+        rm: alunoOriginal?.rmAluno || professorOriginal?.rmProfessor || "",
+        email: perfilOriginal.email || "",
+        escola: alunoOriginal?.curso?.etec?.nome || professorOriginal?.orientacao?.curso?.etec?.nome || "",
+        curso: alunoOriginal?.curso?.nome || "—",
+        serie: alunoOriginal?.turma ? `Turma ${alunoOriginal.turma}` : "—",
+        sobreMim: perfilOriginal.descricao || "",
+        linkFoto: perfilOriginal.linkFoto || "",
+      });
+      setAvatarUrl(perfilOriginal.linkFoto || null);
+    }
+  }, [perfilOriginal, alunoOriginal, professorOriginal]);
 
   const handleField = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -41,21 +55,48 @@ export function Perfil() {
   const handleArquivoSelecionado = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Cria uma URL local apenas para preview. Num sistema real, faríamos upload para um bucket (AWS S3, Cloudinary, etc.)
     const url = URL.createObjectURL(file);
     setAvatarUrl(url);
+    setForm(prev => ({ ...prev, linkFoto: url })); 
   };
 
-  const handleSalvar = (e) => {
+  const handleSalvar = async (e) => {
     e.preventDefault();
-    localStorage.setItem("usuarioSobreMim", form.sobreMim);
-    setSalvo(true);
-    setTimeout(() => setSalvo(false), 2500);
+    if (!perfilOriginal) return;
+    
+    setIsSubmitting(true);
+    setErro("");
+    
+    try {
+      const payload = {
+        descricao: form.sobreMim,
+        urlFoto: form.linkFoto,
+        // Mantemos os campos que o DTO de atualização exige, mesmo sem mudar
+        email: form.email, 
+        novaSenha: "", 
+      };
+
+      // Atualiza no backend na rota correta
+      if (role === "aluno") {
+        await updateEntity("alunos", user.rmAluno, payload);
+      } else {
+        await updateEntity("professores", user.rmProfessor, payload);
+      }
+
+      setSalvo(true);
+      setTimeout(() => setSalvo(false), 2500);
+      if (onUpdate) onUpdate(); // Atualiza os dados globais no PortalApp
+    } catch (error) {
+      setErro(error.message || "Erro ao salvar as alterações.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Estilo visual para campos não editáveis
   const disabledStyle = {
-    backgroundColor: "#f3f4f6",
-    color: "#6b7280",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    color: "#9ca3af",
     cursor: "not-allowed",
     userSelect: "none",
   };
@@ -90,7 +131,6 @@ export function Perfil() {
 
       <form onSubmit={handleSalvar}>
         <S.FieldsGrid>
-          {/* CAMPOS REGISTRADOS PELA SECRETARIA (Não editáveis) */}
           <S.Field>
             Nome Institucional
             <S.Input value={form.nome} readOnly style={disabledStyle} />
@@ -108,16 +148,7 @@ export function Perfil() {
 
           <S.Field>
             E-mail institucional
-            <S.Input
-              value={
-                emailSalvo ||
-                (form.nome
-                  ? `${form.nome.toLowerCase().replace(/[^a-z0-9]+/g, ".")}@etec.sp.gov.br`
-                  : "")
-              }
-              readOnly
-              style={disabledStyle}
-            />
+            <S.Input value={form.email} readOnly style={disabledStyle} />
           </S.Field>
 
           <S.Field>
@@ -140,7 +171,6 @@ export function Perfil() {
           </S.Field>
         </S.FieldsGrid>
 
-        {/* CAMPOS EDITÁVEIS PELO USUÁRIO */}
         <S.Field>
           Sobre mim
           <S.TextArea
@@ -150,8 +180,12 @@ export function Perfil() {
           />
         </S.Field>
 
+        {erro && <span style={{ color: "red", fontSize: "14px", marginTop: "10px", display: "block" }}>{erro}</span>}
+
         <S.FooterRow>
-          <S.SaveButton type="submit">SALVAR ALTERAÇÕES</S.SaveButton>
+          <S.SaveButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}
+          </S.SaveButton>
           <S.SavedMessage $visible={salvo}>Alterações salvas!</S.SavedMessage>
         </S.FooterRow>
       </form>

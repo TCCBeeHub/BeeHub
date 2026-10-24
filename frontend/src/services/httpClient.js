@@ -21,14 +21,16 @@ export async function apiRequest(
 
   let response;
   try {
+    // Chamada do fetch correta e única
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      credentials: "include",
       body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: "include", // <-- Mantém o envio do cookie de sessão
       signal,
     });
-  } catch {
+  } catch (error) {
+    // Correção do catch que estava sem o (error)
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new Error(
       "Não foi possível conectar ao servidor. Verifique se a API Java está disponível.",

@@ -1,34 +1,37 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardCheck, FileText, ArrowUpRight } from "lucide-react";
-import { grupos } from "../../../data/gruposMock";
 import * as S from "./styles";
 
-function arquivosDoGrupo(groupId, iniciais = []) {
+// Função auxiliar que lê os arquivos "enviados" pelos alunos no localStorage
+function arquivosDoGrupo(groupId) {
   try {
     const saved =
-      JSON.parse(localStorage.getItem("beehub-arquivos") || "{}")[groupId] ||
-      {};
-    const extras = Object.values(saved).filter((file) => file?.enviado);
-    const nomes = new Set(iniciais.map((f) => f.nome));
-    return [...iniciais, ...extras.filter((f) => !nomes.has(f.name))];
+      JSON.parse(localStorage.getItem("beehub-arquivos") || "{}")[groupId] || {};
+    return Object.values(saved).filter((file) => file?.enviado);
   } catch {
-    return iniciais;
+    return [];
   }
 }
 
-export function Revisoes() {
+// Recebe os grupos reais do professor via props
+export function Revisoes({ grupos }) {
   const navigate = useNavigate();
-  const pendencias = useMemo(
-    () =>
-      grupos
-        .map((grupo) => ({
+
+  const pendencias = useMemo(() => {
+    if (!grupos) return [];
+    
+    return grupos
+      .map((grupo) => {
+        const arquivosLocais = arquivosDoGrupo(grupo.idGrupo);
+        return {
           ...grupo,
-          arquivos: arquivosDoGrupo(grupo.id, grupo.arquivosEnviados || []),
-        }))
-        .filter((grupo) => grupo.arquivos.length > 0),
-    [],
-  );
+          arquivos: arquivosLocais,
+        };
+      })
+      // Mostra apenas grupos que tenham arquivos enviados (se quiser mostrar todos, remova o .filter)
+      .filter((grupo) => grupo.arquivos.length > 0);
+  }, [grupos]);
 
   return (
     <S.Page>
@@ -46,11 +49,14 @@ export function Revisoes() {
       {pendencias.length ? (
         <S.Grid>
           {pendencias.map((grupo) => (
-            <S.Card key={grupo.id}>
+            <S.Card key={grupo.idGrupo}>
               <S.CardTop>
                 <div>
-                  <strong>{grupo.nome}</strong>
-                  <span>{grupo.tema || "Tema ainda não informado"}</span>
+                  <strong>{grupo.nomeGrupo}</strong>
+                  <span>
+                    {/* Busca o tema se o TCC estiver atrelado ao grupo (opcional no front) */}
+                    {grupo.tcc?.tema || "Tema ainda não informado"}
+                  </span>
                 </div>
                 <S.FileCount>
                   <FileText size={14} />
@@ -58,9 +64,9 @@ export function Revisoes() {
                 </S.FileCount>
               </S.CardTop>
               <S.CardInfo>
-                {grupo.curso} · {grupo.participantes.length} participante(s)
+                {grupo.orientacao?.curso?.nome || "Curso"} · {(grupo.alunos || []).length} participante(s)
               </S.CardInfo>
-              <S.Action onClick={() => navigate(`/revisao/${grupo.id}`)}>
+              <S.Action onClick={() => navigate(`/revisao/${grupo.idGrupo}`)}>
                 Abrir revisão <ArrowUpRight size={15} />
               </S.Action>
             </S.Card>

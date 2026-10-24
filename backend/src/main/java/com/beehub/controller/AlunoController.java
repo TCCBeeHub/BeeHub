@@ -89,7 +89,9 @@ public class AlunoController {
 
     @GetMapping("/{rmAluno}")
     @ResponseStatus(HttpStatus.OK)
-    public AlunoResumoDTO listarAluno(@PathVariable Long rmAluno){
+    public AlunoResumoDTO listarAluno(@PathVariable Long rmAluno,
+                                      HttpSession session){
+        sessaoValidator.validarAcessoInterno(session);
         return alunoService.listarAluno(rmAluno);
     }
 

@@ -60,8 +60,9 @@ public class GrupoController {
 
     @GetMapping("/{idGrupo}")
     @ResponseStatus(HttpStatus.OK)
-    public GrupoResponseDTO listarGrupo(@PathVariable Long idGrupo){
-
+    public GrupoResponseDTO listarGrupo(@PathVariable Long idGrupo,
+                                        HttpSession session){
+        sessaoValidator.validarAcessoInterno(session);
         return grupoService.listarGrupo(idGrupo);
     }
 

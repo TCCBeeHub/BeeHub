@@ -101,6 +101,20 @@ public class CursoService {
     }
 
     @Transactional(readOnly = true)
+    public List<CursoResponseDTO> listarTodosOsCursos(){
+        List<Curso> cursos = cursoRepository.findAll();
+
+        return cursos.stream()
+                .map(curso -> new CursoResponseDTO(
+                        curso.getIdCurso(),
+                        curso.getNome(),
+                        curso.getEtec().getCodEtec(),
+                        alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
+                        curso.getPeriodo()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<CursoResponseDTO> listarCursos(String codEtec){
         String codEtecNormalizado = codEtec.trim();
         validarCodEtec(codEtecNormalizado);

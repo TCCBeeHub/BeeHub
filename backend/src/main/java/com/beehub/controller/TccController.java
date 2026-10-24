@@ -49,6 +49,12 @@ public class TccController {
         return tccService.listarTccDoGrupo(idGrupo, rmAluno);
     }
 
+    @GetMapping("/publico/{codTcc}")
+    @ResponseStatus(HttpStatus.OK)
+    public TccResumoDTO listarTccPublico(@PathVariable Long codTcc){
+        return tccService.listarTccPublico(codTcc);
+    }
+
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<TccPublicadoResponseDTO> listarTccsPublicos(){

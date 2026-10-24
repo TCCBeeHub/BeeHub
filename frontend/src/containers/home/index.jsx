@@ -9,22 +9,30 @@ import {
   Users,
   ArrowUpRight,
 } from "lucide-react";
-import { grupos } from "../../data/gruposMock";
 import { useAuth } from "../../context/AuthContext";
 import * as S from "./styles";
 
-export function Home() {
+// Recebe a lista real de grupos e TCCs via props
+export function Home({ grupos = [], tccs = [] }) {
   const { role, userName } = useAuth();
   const [busca, setBusca] = useState("");
   const [curtidas, setCurtidas] = useState({});
-  const projetos = grupos.filter(
-    (g) => role !== "visitante" || g.status === "concluido",
+
+  // Junta as informações do grupo com as do TCC correspondente (se existir)
+  const projetosCompletos = grupos.map(grupo => {
+    const tcc = tccs.find(t => String(t.idGrupo) === String(grupo.idGrupo));
+    return { ...grupo, tcc };
+  });
+
+  // Visitantes só veem TCCs aprovados ou publicados
+  const projetosVisiveis = projetosCompletos.filter(
+    (g) => role !== "visitante" || ["APROVADO", "PUBLICADO"].includes(g.tcc?.status)
   );
-  const filtrados = projetos.filter((g) =>
-    `${g.nome} ${g.tema} ${g.curso} ${g.orientador}`
-      .toLowerCase()
-      .includes(busca.toLowerCase()),
-  );
+
+  const filtrados = projetosVisiveis.filter((g) => {
+    const textoBusca = `${g.nomeGrupo} ${g.tcc?.tema || ""} ${g.orientacao?.curso?.nome || ""} ${g.orientacao?.professor?.nome || ""}`.toLowerCase();
+    return textoBusca.includes(busca.toLowerCase());
+  });
 
   const toggleLike = (id) =>
     setCurtidas((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -44,19 +52,19 @@ export function Home() {
             <S.Stat>
               <BookOpen size={17} />
               <span>
-                <strong>{grupos.length}</strong> TCCs no acervo
+                <strong>{projetosVisiveis.length}</strong> TCCs no acervo
               </span>
             </S.Stat>
             <S.Stat>
               <Users size={17} />
               <span>
-                <strong>4</strong> cursos ativos
+                <strong>{new Set(projetosVisiveis.map(p => p.orientacao?.curso?.idCurso)).size}</strong> cursos ativos
               </span>
             </S.Stat>
             <S.Stat>
               <TrendingUp size={17} />
               <span>
-                <strong>{projetos.length}</strong> projetos visíveis
+                <strong>{projetosVisiveis.length}</strong> projetos visíveis
               </span>
             </S.Stat>
           </S.Stats>
@@ -88,40 +96,40 @@ export function Home() {
 
       <S.Feed>
         {filtrados.map((grupo) => (
-          <S.Post key={grupo.id}>
+          <S.Post key={grupo.idGrupo}>
             <S.PostTop>
-              <S.Avatar>{grupo.nome.slice(0, 1)}</S.Avatar>
+              <S.Avatar>{grupo.nomeGrupo.slice(0, 1)}</S.Avatar>
               <div>
-                <strong>{grupo.nome}</strong>
+                <strong>{grupo.nomeGrupo}</strong>
                 <span>
-                  {grupo.curso} · Orientador:{" "}
-                  {grupo.orientador || "não definido"}
+                  {grupo.orientacao?.curso?.nome || "Curso"} · Orientador:{" "}
+                  {grupo.orientacao?.professor?.nome || "não definido"}
                 </span>
               </div>
-              <S.Status $done={grupo.status === "concluido"}>
-                {grupo.status === "concluido" ? "Concluído" : "Em andamento"}
+              <S.Status $done={grupo.tcc?.status === "PUBLICADO" || grupo.tcc?.status === "APROVADO"}>
+                {grupo.tcc?.status === "PUBLICADO" ? "Publicado" : 
+                 grupo.tcc?.status === "APROVADO" ? "Aprovado" : "Em andamento"}
               </S.Status>
             </S.PostTop>
-            <S.PostTitle>{grupo.tema}</S.PostTitle>
-            <S.PostText>{grupo.descricao}</S.PostText>
+            <S.PostTitle>{grupo.tcc?.tema || "Tema não cadastrado"}</S.PostTitle>
+            <S.PostText>{grupo.tcc?.descricao || "Descrição não preenchida."}</S.PostText>
             <S.Tags>
-              {grupo.participantes.slice(0, 3).map((p) => (
-                <S.Tag key={p}>{p}</S.Tag>
+              {(grupo.alunos || []).slice(0, 3).map((aluno) => (
+                <S.Tag key={aluno.rmAluno}>{aluno.nome}</S.Tag>
               ))}
             </S.Tags>
             <S.PostFooter>
-              <button onClick={() => toggleLike(grupo.id)}>
+              <button onClick={() => toggleLike(grupo.idGrupo)}>
                 <Heart
                   size={16}
-                  fill={curtidas[grupo.id] ? "currentColor" : "none"}
+                  fill={curtidas[grupo.idGrupo] ? "currentColor" : "none"}
                 />{" "}
-                {curtidas[grupo.id] ? 1 : 0} curtida(s)
+                {curtidas[grupo.idGrupo] ? 1 : 0} curtida(s)
               </button>
-              <S.PostLink as={Link} to={`/projeto/${grupo.id}`}>
-                <MessageCircle size={16} /> {grupo.comentarios.length}{" "}
-                comentário(s)
+              <S.PostLink as={Link} to={`/projeto/${grupo.idGrupo}`}>
+                <MessageCircle size={16} /> 0 comentário(s)
               </S.PostLink>
-              <S.PostLink as={Link} to={`/projeto/${grupo.id}`}>
+              <S.PostLink as={Link} to={`/projeto/${grupo.idGrupo}`}>
                 <ArrowUpRight size={16} /> Ver projeto
               </S.PostLink>
             </S.PostFooter>

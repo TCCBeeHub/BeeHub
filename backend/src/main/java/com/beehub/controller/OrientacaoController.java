@@ -36,6 +36,13 @@ public class OrientacaoController {
         return orientacaoService.listarOrientacoes(rmProfessor);
     }
 
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public List<OrientacaoResponseDTO> listarOrientacoes(HttpSession session){
+        sessaoValidator.validarAdmin(session);
+        return orientacaoService.listarTodasOrientacoes();
+    }
+
     @DeleteMapping("/professor/{rmProfessor}/curso/{idCurso}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluirOrientacao(@PathVariable Long rmProfessor,

@@ -6,6 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     /*
@@ -15,27 +19,42 @@ public class GlobalExceptionHandler {
      * Objetivo: Manter um código limpo apenas passando a mensagem o status HTTP
      * */
     @ExceptionHandler(UsuarioOuSenhaIncorretaException.class)
-    public ResponseEntity<String> handleUsuarioOuSenhaInvalidos(UsuarioOuSenhaIncorretaException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<Map<String, Object>> handleUsuarioOuSenhaInvalidos(UsuarioOuSenhaIncorretaException ex){
+        return buildErrorResponse(ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AcessoNaoPermitidoException.class)
-    public ResponseEntity<String> handleAcessoNaoPermitido(AcessoNaoPermitidoException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<Map<String, Object>> handleAcessoNaoPermitido(AcessoNaoPermitidoException ex){
+        return buildErrorResponse(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(RecursoNaoPermitidoException.class)
-    public ResponseEntity<String> handleAcessoNaoPermitido(RecursoNaoPermitidoException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<Map<String, Object>> handleAcessoNaoPermitido(RecursoNaoPermitidoException ex){
+        return buildErrorResponse(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(RecursoJaEncontradoException.class)
-    public ResponseEntity<String> handleAtributoJaEncontrado(RecursoJaEncontradoException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
+    public ResponseEntity<Map<String, Object>> handleAtributoJaEncontrado(RecursoJaEncontradoException ex){
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
-    public ResponseEntity<String> handleAtributoNaoEncontrado(RecursoNaoEncontradoException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+    public ResponseEntity<Map<String, Object>> handleAtributoNaoEncontrado(RecursoNaoEncontradoException ex){
+        return buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleErroGenerico(Exception ex) {
+        return buildErrorResponse("Ocorreu um erro interno no servidor.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Método auxiliar para montar o JSON de erro
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, HttpStatus status) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", status.value());
+        body.put("error", status.getReasonPhrase());
+        body.put("message", message);
+        return new ResponseEntity<>(body, status);
     }
 }
