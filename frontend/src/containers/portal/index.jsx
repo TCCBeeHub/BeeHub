@@ -37,19 +37,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import "./portal.css";
 
-// ==========================================
-// IMPORTAÇÕES CORRIGIDAS (Apontando para as pastas certas)
-// ==========================================
-import { Home } from "../home";
-import { Cursos } from "../cursos";
-import { Projetos } from "../projetos"; 
-import { ProjetoDetalhes } from "../projetoDetalhes";
-import { Revisoes } from "../professor/Revisoes";
-import { RevisaoProjeto } from "../professor/RevisaoProjeto";
-import { Grupos } from "../professor/Grupos";
-import { Perfil } from "../perfil";
-import { Conversas } from "../conversas";
-
 const ROLE_LABELS = {
   visitante: "Visitante",
   aluno: "Aluno",
@@ -124,8 +111,8 @@ const COLLECTION_CONFIG = {
     label: "Alunos",
     singular: "aluno",
     key: "rmAluno",
-    columns: ["rmAluno", "nome", "idCurso", "idGrupo", "turma"],
-    fields: ["rmAluno", "nome", "email", "linkFoto", "descricao", "turma", "idCurso", "idGrupo", "senha"],
+    columns: ["rmAluno", "email", "idCurso", "idGrupo", "turma"],
+    fields: ["rmAluno", "email", "linkFoto", "descricao", "turma", "idCurso", "idGrupo"],
   },
   orientacoes: {
     label: "Orientações",
@@ -979,26 +966,32 @@ export function PortalApp() {
 
   let page;
   if (section === "home") {
-    page = <Home grupos={data.grupos} tccs={data.tccs} />;
-  } else if (section === "cursos") {
-    page = <Cursos cursos={data.cursos} />;
-  } else if (section === "projetos") {
-    const grupo = filterCollection(role, user, data, "grupos")[0];
-    page = <Projetos grupo={grupo} />;
+    page = <Dashboard role={role} user={user} data={data} />;
   } else if (section === "perfil") {
-    page = <Perfil data={data} user={user} role={role} onUpdate={() => refreshPortal()} />;
+    const profileCollection = role === "aluno" ? "alunos" : "professores";
+    page = (
+      <ResourcePage
+        role={role}
+        user={user}
+        data={data}
+        collection={profileCollection}
+        rows={filterCollection(role, user, data, profileCollection)}
+        onEdit={(record) => openEditor(profileCollection, record)}
+        onCreate={() => openEditor(profileCollection, null)}
+        onDetail={(record) => setDialog({ type: "detail", collection: profileCollection, record })}
+        search={search}
+      />
+    );
   } else if (section === "conversas") {
-    page = <Conversas />;
-  } else if (section === "revisoes") {
-    const grupos = filterCollection(role, user, data, "grupos");
-    page = <Revisoes grupos={grupos} />;
-  } else if (section === "revisao") {
-    const groupId = getPathRecordId(location.pathname);
-    const grupo = data.grupos.find(g => String(g.idGrupo) === String(groupId));
-    page = <RevisaoProjeto grupo={grupo} />;
-  } else if (section === "grupos" && role === "professor") {
-    const grupos = filterCollection(role, user, data, "grupos");
-    page = <Grupos grupos={grupos} alunos={data.alunos} />;
+    page = (
+      <ConversationPage
+        role={role}
+        user={user}
+        data={data}
+        selected={selectedConversation}
+        onSelect={setSelectedConversation}
+      />
+    );
   } else if (isDetails) {
     const targetCollection = section === "tcc-detail" ? "tccs" : "cursos";
     const targetId = getPathRecordId(location.pathname);
@@ -1008,28 +1001,22 @@ export function PortalApp() {
         (item) =>
           String(item[COLLECTION_CONFIG[targetCollection].key]) === targetId,
       ) || null;
-      
-    if (section === "tcc-detail" && record) {
-        const grupoDoTcc = data.grupos.find(g => g.idGrupo === record.idGrupo);
-        page = <ProjetoDetalhes grupo={grupoDoTcc} tcc={record} />;
-    } else {
-        page = record ? (
-        <ResourcePage
-            role={role}
-            user={user}
-            data={data}
-            collection={targetCollection}
-            rows={[record]}
-            onEdit={(item) => openEditor(targetCollection, item)}
-            onCreate={() => openEditor(targetCollection, null)}
-            onDetail={(item) => setDialog({ type: "detail", collection: targetCollection, record: item })}
-            search=""
-            detailOnly
-        />
-        ) : (
-        <EmptyState title="Registro não encontrado" text="Ele pode não existir ou não estar disponível para este perfil." />
-        );
-    }
+    page = record ? (
+      <ResourcePage
+        role={role}
+        user={user}
+        data={data}
+        collection={targetCollection}
+        rows={[record]}
+        onEdit={(item) => openEditor(targetCollection, item)}
+        onCreate={() => openEditor(targetCollection, null)}
+        onDetail={(item) => setDialog({ type: "detail", collection: targetCollection, record: item })}
+        search=""
+        detailOnly
+      />
+    ) : (
+      <EmptyState title="Registro não encontrado" text="Ele pode não existir ou não estar disponível para este perfil." />
+    );
   } else if (collection) {
     page = (
       <ResourcePage
@@ -1184,6 +1171,166 @@ function PageHeading({ eyebrow, title, description, action }) {
       </div>
       {action}
     </div>
+  );
+}
+
+function Dashboard({ role, user, data }) {
+  const studentGroup = role === "aluno"
+    ? data.grupos.find((item) => item.idGrupo === Number(user?.idGrupo))
+    : null;
+  const studentTcc = studentGroup
+    ? data.tccs.find((item) => item.idGrupo === studentGroup.idGrupo)
+    : null;
+  const publicTccs = data.tccs.filter((item) =>
+    ["APROVADO", "PUBLICADO"].includes(item.status),
+  );
+  const teacherGroups = role === "professor"
+    ? filterCollection(role, user, data, "grupos")
+    : [];
+
+  if (role === "visitante") {
+    return (
+      <>
+        <section className="public-hero">
+          <div className="public-hero-copy">
+            <span className="eyebrow">BEEHUB · COMUNIDADE ACADÊMICA</span>
+            <h1>Ideias acadêmicas que conectam pessoas e conhecimento.</h1>
+            <p>
+              Explore cursos e trabalhos aprovados ou publicados. Informações pessoais e projetos em andamento permanecem restritos.
+            </p>
+            <div className="hero-actions">
+              <Link className="button button-primary" to="/tccs">
+                Conhecer TCCs <ArrowRight size={17} />
+              </Link>
+              <Link className="button button-secondary" to="/cursos">Explorar cursos</Link>
+            </div>
+          </div>
+          <div className="hero-illustration" aria-hidden="true">
+            <div className="hero-illustration-halo" />
+            <div className="hero-book"><BookOpen size={54} strokeWidth={1.4} /></div>
+            <span className="hero-float hero-float-one"><GraduationCap size={24} /></span>
+            <span className="hero-float hero-float-two"><FileText size={22} /></span>
+            <span className="hero-dot hero-dot-one" />
+            <span className="hero-dot hero-dot-two" />
+          </div>
+        </section>
+        <div className="stats-grid public-stats">
+          <StatCard icon={BookOpen} label="Cursos disponíveis" value={data.cursos.length} tone="purple" />
+          <StatCard icon={FileText} label="TCCs aprovados ou publicados" value={publicTccs.length} tone="gold" />
+          <StatCard icon={Building2} label="ETECs participantes" value={data.etecs.length} tone="green" />
+        </div>
+        <PageHeading
+          eyebrow="ACERVO PÚBLICO"
+          title="Trabalhos em destaque"
+          description="Somente TCCs aprovados ou publicados são exibidos para visitantes."
+          action={<Link className="text-link" to="/tccs">Ver acervo <ArrowRight size={16} /></Link>}
+        />
+        <PublicTccCards data={data} tccs={publicTccs.slice(0, 3)} />
+      </>
+    );
+  }
+
+  if (role === "aluno") {
+    return (
+      <>
+        <section className="welcome-banner">
+          <div>
+            <span className="eyebrow">SEU ESPAÇO ACADÊMICO</span>
+            <h1>Olá, estudante <span>RM {user?.rmAluno}</span></h1>
+            <p>Acompanhe seu grupo, seu trabalho e as orientações vinculadas ao seu curso.</p>
+          </div>
+          <div className="banner-mark"><GraduationCap size={42} /></div>
+        </section>
+        <div className="stats-grid">
+          <StatCard icon={UsersRound} label="Meu grupo" value={studentGroup?.nomeGrupo || "Não vinculado"} tone="purple" />
+          <StatCard icon={FileText} label="Status do TCC" value={STATUS_LABELS[studentTcc?.status] || "Sem TCC"} tone="gold" />
+          <StatCard icon={BookOpen} label="Meu curso" value={data.cursos.find((item) => item.idCurso === Number(user?.idCurso))?.nome || "—"} tone="green" />
+        </div>
+        <section className="content-panel progress-panel">
+          <div className="panel-heading">
+            <div><span className="eyebrow">PRÓXIMOS PASSOS</span><h2>Seu acompanhamento</h2></div>
+            <span className="soft-pill"><Check size={14} /> Dados do seu vínculo</span>
+          </div>
+          <div className="milestone-list">
+            <Milestone title="Vínculo com o grupo" detail={studentGroup?.nomeGrupo || "Nenhum grupo associado"} complete={Boolean(studentGroup)} />
+            <Milestone title="Orientação vinculada" detail={orientationSummary(studentGroup, data)} complete={Boolean(studentGroup)} />
+            <Milestone title="Trabalho de conclusão" detail={studentTcc?.tema || "Seu grupo ainda não possui TCC cadastrado"} complete={Boolean(studentTcc)} />
+          </div>
+          <Link className="inline-action" to="/grupos">Ver meu grupo <ArrowRight size={16} /></Link>
+        </section>
+      </>
+    );
+  }
+
+  if (role === "professor") {
+    const orientedTccs = filterCollection(role, user, data, "tccs");
+    const pending = orientedTccs.filter((item) =>
+      ["EM_ANDAMENTO", "ENTREGUE"].includes(item.status),
+    ).length;
+    return (
+      <>
+        <section className="welcome-banner">
+          <div>
+            <span className="eyebrow">ÁREA DO PROFESSOR</span>
+            <h1>Olá, professor <span>RM {user?.rmProfessor}</span></h1>
+            <p>Veja apenas os grupos, as orientações e os TCCs vinculados a você.</p>
+          </div>
+          <div className="banner-mark"><ClipboardList size={40} /></div>
+        </section>
+        <div className="stats-grid">
+          <StatCard icon={UsersRound} label="Grupos atribuídos" value={teacherGroups.length} tone="purple" />
+          <StatCard icon={FileText} label="TCCs vinculados" value={orientedTccs.length} tone="gold" />
+          <StatCard icon={CalendarDays} label="Trabalhos em acompanhamento" value={pending} tone="green" />
+        </div>
+        <PageHeading
+          eyebrow="ACOMPANHAMENTO"
+          title="Grupos sob sua orientação"
+          description="As informações exibidas correspondem somente às suas orientações."
+          action={<Link className="text-link" to="/orientacoes">Ver orientações <ArrowRight size={16} /></Link>}
+        />
+        <GroupCards data={data} groups={teacherGroups} />
+      </>
+    );
+  }
+
+  const overview = Object.entries(COLLECTION_CONFIG).map(([key, config]) => ({
+    id: key,
+    label: config.label,
+    count: data[key].length,
+    icon: ICONS[key],
+    path: `/${key}`,
+  }));
+  return (
+    <>
+      <section className="welcome-banner admin-banner">
+        <div>
+          <span className="eyebrow">ADMINISTRAÇÃO DO BEEHUB</span>
+          <h1>Visão geral da plataforma</h1>
+          <p>Gerencie os cadastros do modelo e acompanhe as relações entre entidades.</p>
+        </div>
+        <div className="banner-mark"><ShieldCheck size={40} /></div>
+      </section>
+      <div className="stats-grid">
+        <StatCard icon={Building2} label="ETECs" value={data.etecs.length} tone="purple" />
+        <StatCard icon={BookOpen} label="Cursos" value={data.cursos.length} tone="gold" />
+        <StatCard icon={UsersRound} label="Grupos" value={data.grupos.length} tone="green" />
+        <StatCard icon={FileText} label="TCCs" value={data.tccs.length} tone="purple" />
+      </div>
+      <PageHeading
+        eyebrow="CADASTROS DO MODELO"
+        title="Entidades e relacionamentos"
+        description="Consulte e administre as entidades e os relacionamentos armazenados no servidor."
+      />
+      <div className="entity-shortcuts">
+        {overview.map(({ id, label, count, icon: Icon, path }) => (
+          <Link className="entity-shortcut" key={id} to={path}>
+            <span className="shortcut-icon"><Icon size={20} /></span>
+            <span><strong>{label}</strong><small>{count} registro(s)</small></span>
+            <ArrowRight size={17} />
+          </Link>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -1685,6 +1832,118 @@ function DetailDialog({ role, collection, record, data, onClose, onEdit, onDelet
         </div>
       </section>
     </div>
+  );
+}
+
+function ConversationPage({ role, user, data, selected, onSelect }) {
+  const [currentSelection, setCurrentSelection] = useState(selected);
+  const contacts = useMemo(() => {
+    if (role === "aluno") {
+      const group = data.grupos.find((item) => item.idGrupo === Number(user?.idGrupo));
+      const orientation = data.orientacoes.find(
+        (item) => item.idOrientacao === group?.idOrientacao,
+      );
+      const professor = data.professores.find(
+        (item) => item.rmProfessor === orientation?.rmProfessor,
+      );
+      return professor
+        ? [{
+            id: professor.rmProfessor,
+            title: `Professor · RM ${professor.rmProfessor}`,
+            subtitle: professor.email,
+            preview: "Orientação do seu grupo",
+          }]
+        : [];
+    }
+    const orientations = data.orientacoes.filter(
+      (item) => item.rmProfessor === user?.rmProfessor,
+    );
+    const groupIds = new Set(
+      data.grupos
+        .filter((item) => orientations.some((orientation) => orientation.idOrientacao === item.idOrientacao))
+        .map((item) => item.idGrupo),
+    );
+    return data.alunos
+      .filter((item) => groupIds.has(item.idGrupo))
+      .map((student) => ({
+        id: student.rmAluno,
+        title: `Aluno · RM ${student.rmAluno}`,
+        subtitle: student.email,
+        preview: data.grupos.find((item) => item.idGrupo === student.idGrupo)?.nomeGrupo || "Grupo vinculado",
+      }));
+  }, [data, role, user]);
+  const activeId = contacts.some((contact) => contact.id === currentSelection)
+    ? currentSelection
+    : contacts[0]?.id;
+  const activeContact = contacts.find((contact) => contact.id === activeId);
+  const messages = CHAT_MESSAGES[role] || [];
+
+  const selectContact = (id) => {
+    setCurrentSelection(id);
+    onSelect(id);
+  };
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="ORIENTAÇÃO ENTRE ALUNO E PROFESSOR"
+        title="Conversas"
+        description="A interface de conversas será conectada em uma etapa futura."
+      />
+      <div className="chat-stage-note">
+        <span className="chat-stage-icon"><MessageCircle size={19} /></span>
+        <span><strong>Módulo previsto para a próxima etapa</strong><small>As mensagens abaixo são exemplos locais. O chat não envia nem recebe mensagens reais.</small></span>
+      </div>
+      <div className="chat-layout">
+        <aside className="chat-contacts">
+          <div className="chat-contacts-heading"><strong>Vínculos disponíveis</strong><span>{contacts.length}</span></div>
+          {contacts.length ? contacts.map((contact) => (
+            <button
+              className={`chat-contact ${contact.id === activeId ? "is-selected" : ""}`}
+              key={contact.id}
+              onClick={() => selectContact(contact.id)}
+            >
+              <span className="chat-avatar">{role === "aluno" ? "P" : "A"}</span>
+              <span><strong>{contact.title}</strong><small>{contact.preview}</small></span>
+            </button>
+          )) : <p className="chat-empty">Nenhum vínculo de orientação disponível.</p>}
+          <p className="chat-privacy">A lista respeita os vínculos de grupo e orientação do perfil atual.</p>
+        </aside>
+        <section className="chat-window">
+          {activeContact ? (
+            <>
+              <header className="chat-window-header">
+                <span className="chat-avatar">{role === "aluno" ? "P" : "A"}</span>
+                <span><strong>{activeContact.title}</strong><small>{activeContact.subtitle}</small></span>
+                <span className="local-message-tag">EXEMPLO</span>
+              </header>
+              <div className="chat-messages">
+                <div className="chat-date-divider"><span>Conversa de demonstração</span></div>
+                {messages.map((message, index) => {
+                  const mine = role === "aluno"
+                    ? message.sender === "aluno"
+                    : message.sender === "professor";
+                  return (
+                    <div className={`message-row ${mine ? "message-mine" : ""}`} key={`${message.time}-${index}`}>
+                      <div className="message-bubble">
+                        <p>{message.text}</p>
+                        <time>{message.time}</time>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="chat-composer-disabled">
+                <input disabled placeholder="Envio de mensagens disponível em uma etapa futura" />
+                <button disabled aria-label="Envio indisponível"><MessageCircle size={17} /></button>
+              </div>
+            </>
+          ) : (
+            <EmptyState title="Conversa indisponível" text="É necessário haver uma orientação vinculada para demonstrar o fluxo." />
+          )}
+        </section>
+      </div>
+    </>
   );
 }
 

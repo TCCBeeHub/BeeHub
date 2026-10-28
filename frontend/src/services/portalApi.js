@@ -42,21 +42,12 @@ function normalizeList(response, path) {
 async function getList(
   path,
   signal,
-  { clearSessionOnUnauthorized = true, ignore404 = false } = {},
+  { clearSessionOnUnauthorized = true } = {},
 ) {
-  try {
-    return normalizeList(
-      await apiRequest(path, { signal, clearSessionOnUnauthorized }),
-      path,
-    );
-  } catch (error) {
-    // Ignorar 404 e 405 nas rotas base que o backend ainda não possui listagem global
-    if (ignore404 && (error.status === 404 || error.status === 405)) {
-      console.warn(`[Aviso] Rota não implementada no backend: GET ${path}`);
-      return [];
-    }
-    throw error;
-  }
+  return normalizeList(
+    await apiRequest(path, { signal, clearSessionOnUnauthorized }),
+    path,
+  );
 }
 
 function uniqueById(records, field) {
@@ -123,12 +114,10 @@ export async function getPortalData({ role, user, signal } = {}) {
 
   const publicRequestOptions =
     role === "visitante" ? { clearSessionOnUnauthorized: false } : undefined;
-
   const etecs = normalizeRecords(
     await getList("/etec", signal, publicRequestOptions),
     "etecs",
   );
-
   const cursoLists = await Promise.all(
     etecs.map((etec) =>
       getList(
@@ -147,58 +136,59 @@ export async function getPortalData({ role, user, signal } = {}) {
       "tccs",
     ).filter((tcc) => ["APROVADO", "PUBLICADO"].includes(tcc.status));
     return {
-      administradores: [], etecs, cursos: uniqueCursos, professores: [], alunos: [], orientacoes: [], grupos: [], tccs,
+      administradores: [],
+      etecs,
+      cursos: uniqueCursos,
+      professores: [],
+      alunos: [],
+      orientacoes: [],
+      grupos: [],
+      tccs,
     };
   }
 
   const baseRequests = [
-    getList("/orientacao", signal, { ignore404: true }),
+    getList("/orientacao", signal),
     getList("/grupo", signal),
     getList("/tcc", signal),
   ];
-  if (role === "administrador") {
-    baseRequests.push(getList("/admin", signal, { ignore404: true }));
-  }
+  if (role === "administrador") baseRequests.push(getList("/admin", signal));
 
   const [orientationResponse, groupResponse, tccResponse, adminResponse = []] =
     await Promise.all(baseRequests);
-    
   const allOrientations = normalizeRecords(orientationResponse, "orientacoes");
   const allGroups = normalizeRecords(groupResponse, "grupos");
   const allTccs = normalizeRecords(tccResponse, "tccs");
-
   const studentCourseId =
     role === "aluno" && user?.idCurso != null ? Number(user.idCurso) : null;
-
-  let professorOrientations = role === "professor"
-      ? allOrientations.filter((item) => sameId(item.rmProfessor, user?.rmProfessor))
+  const professorOrientations =
+    role === "professor"
+      ? allOrientations.filter((item) =>
+          sameId(item.rmProfessor, user?.rmProfessor),
+        )
       : [];
-
-  if (role === "professor" && professorOrientations.length === 0 && user?.rmProfessor) {
-    try {
-      const profOrients = await getList(`/orientacao/professor/${user.rmProfessor}`, signal);
-      professorOrientations = normalizeRecords(profOrients, "orientacoes");
-      allOrientations.push(...professorOrientations); 
-    } catch (e) {
-      console.warn("[Aviso] Falha ao buscar orientações do professor.");
-    }
-  }
-
   const courseIds =
     role === "administrador"
       ? uniqueCursos.map((item) => item.idCurso)
       : role === "aluno"
-        ? (studentCourseId == null || studentCourseId < 1 ? [] : [studentCourseId])
-        : uniqueById(professorOrientations, "idCurso").map((item) => item.idCurso);
+        ? studentCourseId == null ||
+          !Number.isSafeInteger(studentCourseId) ||
+          studentCourseId < 1
+          ? []
+          : [studentCourseId]
+        : uniqueById(professorOrientations, "idCurso").map(
+            (item) => item.idCurso,
+          );
 
   if (role === "aluno" && courseIds.length === 0) {
-    throw new Error("O login do aluno precisa retornar idCurso para carregar os dados vinculados.");
+    throw new Error(
+      "O login do aluno precisa retornar idCurso para carregar os dados vinculados.",
+    );
   }
-  
-  if (role === "professor" && courseIds.length === 0) {
-    return {
-      administradores: [], etecs, cursos: [], professores: [], alunos: [], orientacoes: [], grupos: [], tccs: [],
-    };
+  if (role === "professor" && professorOrientations.length === 0) {
+    throw new Error(
+      "A API não retornou orientações vinculadas ao professor autenticado.",
+    );
   }
 
   const memberLists = await Promise.all(
@@ -207,7 +197,6 @@ export async function getPortalData({ role, user, signal } = {}) {
       getList(`/professor/curso/${encodeURIComponent(String(idCurso))}`, signal),
     ]),
   );
-  
   const allStudents = normalizeRecords(
     memberLists.filter((_, index) => index % 2 === 0).flat(),
     "alunos",
@@ -216,19 +205,23 @@ export async function getPortalData({ role, user, signal } = {}) {
     memberLists.filter((_, index) => index % 2 === 1).flat(),
     "professores",
   );
-  
   const ownStudent =
     role === "aluno"
       ? allStudents.find((item) => sameId(item.rmAluno, user?.rmAluno))
       : null;
-      
   if (role === "aluno" && !ownStudent) {
-    throw new Error("A API não retornou o aluno autenticado na lista do curso.");
+    throw new Error(
+      "A API não retornou o aluno autenticado na lista do curso.",
+    );
   }
-  if (role === "aluno" && !sameId(ownStudent.idCurso, user?.idCurso)) {
-    throw new Error("O curso do aluno retornado pela API não corresponde ao curso da sessão.");
+  if (
+    role === "aluno" &&
+    !sameId(ownStudent.idCurso, user?.idCurso)
+  ) {
+    throw new Error(
+      "O curso do aluno retornado pela API não corresponde ao curso da sessão.",
+    );
   }
-
   const orientationRows =
     role === "professor"
       ? professorOrientations
@@ -252,32 +245,31 @@ export async function getPortalData({ role, user, signal } = {}) {
               sameId(orientation.idOrientacao, item.idOrientacao),
             ),
           );
-          
   const groupIds = new Set(groups.map((item) => String(item.idGrupo)));
-  
   const scopedOrientations =
     role === "administrador"
       ? allOrientations
       : orientationRows;
-      
   const students =
     role === "administrador"
       ? allStudents
       : role === "aluno"
-        ? allStudents.filter((item) => sameId(item.rmAluno, user?.rmAluno))
+        ? allStudents.filter((item) =>
+            sameId(item.rmAluno, user?.rmAluno),
+          )
         : filterByCourseAndClass(allStudents, orientationRows);
-        
   const professors =
     role === "administrador"
       ? allProfessors
       : role === "professor"
-        ? allProfessors.filter((item) => sameId(item.rmProfessor, user?.rmProfessor))
+        ? allProfessors.filter((item) =>
+            sameId(item.rmProfessor, user?.rmProfessor),
+          )
         : allProfessors.filter((item) =>
             orientationRows.some((orientation) =>
               sameId(orientation.rmProfessor, item.rmProfessor),
             ),
           );
-          
   const tccs =
     role === "administrador"
       ? allTccs
@@ -303,30 +295,12 @@ export async function getPortalData({ role, user, signal } = {}) {
 export function createEntity(collection, record) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
-
-  // Ajuste para Aluno: envia o idCurso na URL
-  if (collection === "alunos") {
-    return apiRequest(`${path}/curso/${record.idCurso}`, {
-      method: "POST",
-      body: record,
-    });
-  }
-
   return apiRequest(path, { method: "POST", body: record });
 }
 
 export function updateEntity(collection, key, record) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
-
-  // Ajuste para Curso: envia o codEtec junto com o idCurso na URL
-  if (collection === "cursos") {
-    return apiRequest(`${path}/${record.codEtec}/${encodeURIComponent(String(key))}`, {
-      method: "PUT",
-      body: record,
-    });
-  }
-
   return apiRequest(
     `${path}/${encodeURIComponent(String(key))}`,
     { method: "PUT", body: record },

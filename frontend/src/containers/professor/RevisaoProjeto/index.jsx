@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   FileText,
   Send,
@@ -10,6 +11,7 @@ import {
   Paperclip,
   FileCheck2,
 } from "lucide-react";
+import { grupos } from "../../../data/gruposMock";
 import { useAuth } from "../../../context/AuthContext";
 import * as S from "./styles";
 
@@ -24,39 +26,47 @@ function criarPreview(file) {
   return URL.createObjectURL(blob);
 }
 
-function carregarArquivosSalvos(groupId) {
+function carregarArquivosSalvos(groupId, iniciais) {
   try {
     const saved =
-      JSON.parse(localStorage.getItem("beehub-arquivos") || "{}")[groupId] || {};
-    return Object.values(saved)
+      JSON.parse(localStorage.getItem("beehub-arquivos") || "{}")[groupId] ||
+      {};
+    const extras = Object.values(saved)
       .filter((file) => file?.enviado)
       .map((file) => ({ ...file, id: `local-${file.name}-${file.size}` }));
+    const baseNames = new Set(iniciais.map((file) => file.nome));
+    return [...iniciais, ...extras.filter((file) => !baseNames.has(file.name))];
   } catch {
-    return [];
+    return iniciais;
   }
 }
 
-// Recebe o grupo real via prop
-export function RevisaoProjeto({ grupo }) {
+export function RevisaoProjeto() {
+  const { groupId } = useParams();
   const { userName } = useAuth();
-  const [comentarios, setComentarios] = useState([]);
+  const grupoOriginal = grupos.find((g) => g.id === groupId);
+  const [comentarios, setComentarios] = useState(
+    grupoOriginal?.comentarios ?? [],
+  );
   const [texto, setTexto] = useState("");
-  
-  // Pega os alunos reais vinculados ao grupo
-  const [participantes, setParticipantes] = useState([]);
-  
-  const [arquivos, setArquivos] = useState([]);
+  const [participantes, setParticipantes] = useState(
+    grupoOriginal?.participantes ?? [],
+  );
+  const [novoMembro, setNovoMembro] = useState("");
+  const [arquivos, setArquivos] = useState(() =>
+    carregarArquivosSalvos(
+      groupId,
+      (grupoOriginal?.arquivosEnviados || []).map((f) => ({
+        ...f,
+        previewUrl: null,
+      })),
+    ),
+  );
   const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
 
-  // Carrega os dados do backend e do localStorage quando o grupo é carregado
-  useEffect(() => {
-    if (grupo) {
-      setParticipantes((grupo.alunos || []).map(a => a.nome));
-      setArquivos(carregarArquivosSalvos(grupo.idGrupo));
-    }
-  }, [grupo]);
+  useEffect(() => () => {}, []);
 
-  if (!grupo)
+  if (!grupoOriginal)
     return (
       <div>
         <p>Grupo não encontrado.</p>
@@ -79,12 +89,14 @@ export function RevisaoProjeto({ grupo }) {
       URL.revokeObjectURL(target.previewUrl);
     if (target?.dataUrl) {
       try {
-        const current = JSON.parse(localStorage.getItem("beehub-arquivos") || "{}");
-        const group = current[grupo.idGrupo] || {};
+        const current = JSON.parse(
+          localStorage.getItem("beehub-arquivos") || "{}",
+        );
+        const group = current[groupId] || {};
         Object.keys(group).forEach((key) => {
           if (group[key]?.name === target.name) delete group[key];
         });
-        current[grupo.idGrupo] = group;
+        current[groupId] = group;
         localStorage.setItem("beehub-arquivos", JSON.stringify(current));
       } catch {}
     }
@@ -104,7 +116,6 @@ export function RevisaoProjeto({ grupo }) {
     ]);
     setTexto("");
   };
-  
   const handleAdicionarMembro = (e) => {
     e.preventDefault();
     const nome = novoMembro.trim();
@@ -112,29 +123,31 @@ export function RevisaoProjeto({ grupo }) {
     setParticipantes((prev) => [...prev, nome]);
     setNovoMembro("");
   };
-  
   const handleRemoverMembro = (nome) =>
     setParticipantes((prev) => prev.filter((p) => p !== nome));
 
   return (
     <div>
       <S.TitleRow>
-        <S.ColorDot $color="#8b5cf6" />
+        <S.ColorDot $color={grupoOriginal.cor} />
         <div>
-          <h1>{grupo.nomeGrupo}</h1>
-          <S.SubTitle>{grupo.tcc?.tema || "Tema ainda não informado"}</S.SubTitle>
+          <h1>{grupoOriginal.nome}</h1>
+          <S.SubTitle>{grupoOriginal.tema}</S.SubTitle>
         </div>
       </S.TitleRow>
       <S.Grid>
         <S.Card>
           <S.SectionLabel>DESCRIÇÃO</S.SectionLabel>
-          <S.BodyText>{grupo.tcc?.descricao || "Nenhuma descrição informada."}</S.BodyText>
+          <S.BodyText>{grupoOriginal.descricao}</S.BodyText>
           <S.SectionLabel>PARTICIPANTES</S.SectionLabel>
           <S.TagList>
             {participantes.map((nome) => (
               <S.TagRemovable key={nome}>
                 {nome}
-                <S.TagRemoveButton type="button" onClick={() => handleRemoverMembro(nome)}>
+                <S.TagRemoveButton
+                  type="button"
+                  onClick={() => handleRemoverMembro(nome)}
+                >
                   <X size={11} />
                 </S.TagRemoveButton>
               </S.TagRemovable>
@@ -160,20 +173,30 @@ export function RevisaoProjeto({ grupo }) {
                       <FileText size={18} />
                     </S.FileIcon>
                     <div>
-                      <strong>{arquivo.name}</strong>
-                      <span>{arquivo.type || "Arquivo"}</span>
+                      <strong>{arquivo.nome}</strong>
+                      <span>{arquivo.descricao}</span>
                     </div>
                   </S.FileInfo>
                   <S.FileButtons>
-                    <S.FileButton type="button" onClick={() => abrirArquivo(arquivo)}>
+                    <S.FileButton
+                      type="button"
+                      onClick={() => abrirArquivo(arquivo)}
+                    >
                       <Eye size={14} /> Visualizar
                     </S.FileButton>
                     {arquivo.previewUrl && (
-                      <S.FileButton as="a" href={arquivo.previewUrl} download={arquivo.name}>
+                      <S.FileButton
+                        as="a"
+                        href={arquivo.previewUrl}
+                        download={arquivo.nome}
+                      >
                         <Download size={14} /> Baixar
                       </S.FileButton>
                     )}
-                    <S.FileDelete type="button" onClick={() => excluirArquivo(arquivo.id)}>
+                    <S.FileDelete
+                      type="button"
+                      onClick={() => excluirArquivo(arquivo.id)}
+                    >
                       <Trash2 size={14} /> Excluir
                     </S.FileDelete>
                   </S.FileButtons>
@@ -192,7 +215,9 @@ export function RevisaoProjeto({ grupo }) {
             <FileCheck2 size={19} />
             <div>
               <strong>{arquivos.length} arquivo(s) recebido(s)</strong>
-              <span>Abra o material para conferir antes de fazer sua correção.</span>
+              <span>
+                Abra o material para conferir antes de fazer sua correção.
+              </span>
             </div>
           </S.DeliverySummary>
           <S.SectionLabel>COMENTÁRIOS SOBRE O TRABALHO</S.SectionLabel>
@@ -229,7 +254,7 @@ export function RevisaoProjeto({ grupo }) {
           <S.PreviewModal onClick={(e) => e.stopPropagation()}>
             <S.PreviewHeader>
               <div>
-                <strong>{arquivoSelecionado.name}</strong>
+                <strong>{arquivoSelecionado.nome}</strong>
                 <span>Visualização para correção</span>
               </div>
               <button onClick={() => setArquivoSelecionado(null)}>
@@ -239,13 +264,19 @@ export function RevisaoProjeto({ grupo }) {
             <S.PreviewBody>
               {arquivoSelecionado.type?.startsWith("image/") ? (
                 <img
-                  src={arquivoSelecionado.dataUrl || arquivoSelecionado.previewUrl}
-                  alt={`Pré-visualização ${arquivoSelecionado.name}`}
+                  src={
+                    arquivoSelecionado.dataUrl || arquivoSelecionado.previewUrl
+                  }
+                  alt={`Pré-visualização ${arquivoSelecionado.nome}`}
                 />
               ) : (
                 <iframe
-                  title={`Pré-visualização ${arquivoSelecionado.name}`}
-                  src={arquivoSelecionado.dataUrl || arquivoSelecionado.previewUrl || criarPreview(arquivoSelecionado)}
+                  title={`Pré-visualização ${arquivoSelecionado.nome}`}
+                  src={
+                    arquivoSelecionado.dataUrl ||
+                    arquivoSelecionado.previewUrl ||
+                    criarPreview(arquivoSelecionado)
+                  }
                 />
               )}
             </S.PreviewBody>
@@ -253,7 +284,10 @@ export function RevisaoProjeto({ grupo }) {
               <S.PreviewNote>
                 <Paperclip size={14} /> Material recebido do grupo para revisão.
               </S.PreviewNote>
-              <S.FileDelete type="button" onClick={() => excluirArquivo(arquivoSelecionado.id)}>
+              <S.FileDelete
+                type="button"
+                onClick={() => excluirArquivo(arquivoSelecionado.id)}
+              >
                 <Trash2 size={14} /> Excluir arquivo
               </S.FileDelete>
             </S.PreviewFooter>

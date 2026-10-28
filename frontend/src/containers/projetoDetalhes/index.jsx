@@ -5,35 +5,22 @@ import {
   MessageCircle,
   FileText,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { grupos } from "../../data/gruposMock";
 import { useAuth } from "../../context/AuthContext";
 import * as S from "./styles";
 
-// Recebe o grupo real e o TCC vinculado a ele via props
-export function ProjetoDetalhes({ grupo, tcc }) {
+export function ProjetoDetalhes() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const grupo = grupos.find((item) => item.id === id);
 
-  if (!grupo) {
+  if (!grupo || (role === "visitante" && grupo.status !== "concluido")) {
     return (
       <S.Empty>
         <strong>Projeto indisponível</strong>
-        <span>Este projeto não foi encontrado ou não está disponível.</span>
-        <S.Back onClick={() => navigate("/")}>
-          <ArrowLeft size={15} /> Voltar ao dashboard
-        </S.Back>
-      </S.Empty>
-    );
-  }
-
-  // Se for visitante, só pode ver se o TCC estiver aprovado ou publicado
-  const isPublic = tcc?.status === "APROVADO" || tcc?.status === "PUBLICADO";
-  
-  if (role === "visitante" && !isPublic) {
-    return (
-      <S.Empty>
-        <strong>Projeto indisponível</strong>
-        <span>Este projeto ainda está em desenvolvimento e não é público.</span>
+        <span>Este projeto não está disponível para o seu perfil.</span>
         <S.Back onClick={() => navigate("/")}>
           <ArrowLeft size={15} /> Voltar ao dashboard
         </S.Back>
@@ -48,42 +35,42 @@ export function ProjetoDetalhes({ grupo, tcc }) {
       </S.Back>
       <S.Card>
         <S.Top>
-          <S.Course>{grupo.orientacao?.curso?.nome || "Curso"}</S.Course>
-          <S.Status $done={isPublic}>
-            {isPublic ? "Concluído" : "Em andamento"}
+          <S.Course>{grupo.curso}</S.Course>
+          <S.Status $done={grupo.status === "concluido"}>
+            {grupo.status === "concluido" ? "Concluído" : "Em andamento"}
           </S.Status>
         </S.Top>
-        <h1>{grupo.nomeGrupo}</h1>
-        <S.Theme>{tcc?.tema || "Tema ainda não cadastrado"}</S.Theme>
-        <S.Body>{tcc?.descricao || "Descrição não informada."}</S.Body>
+        <h1>{grupo.nome}</h1>
+        <S.Theme>{grupo.tema}</S.Theme>
+        <S.Body>{grupo.descricao}</S.Body>
         <S.MetaGrid>
           <S.Meta>
             <BookOpen size={16} />
             <div>
               <span>Orientador</span>
-              <strong>{grupo.orientacao?.professor?.nome || "Não definido"}</strong>
+              <strong>{grupo.orientador || "Não definido"}</strong>
             </div>
           </S.Meta>
           <S.Meta>
             <Users size={16} />
             <div>
               <span>Participantes</span>
-              <strong>{(grupo.alunos || []).length}</strong>
+              <strong>{grupo.participantes.length}</strong>
             </div>
           </S.Meta>
           <S.Meta>
             <MessageCircle size={16} />
             <div>
-              <span>Status do TCC</span>
-              <strong>{tcc?.status || "Sem TCC"}</strong>
+              <span>Comentários</span>
+              <strong>{grupo.comentarios.length}</strong>
             </div>
           </S.Meta>
         </S.MetaGrid>
         <S.Section>
           <h2>Equipe</h2>
           <S.Tags>
-            {(grupo.alunos || []).map((aluno) => (
-              <S.Tag key={aluno.rmAluno}>{aluno.nome}</S.Tag>
+            {grupo.participantes.map((p) => (
+              <S.Tag key={p}>{p}</S.Tag>
             ))}
           </S.Tags>
         </S.Section>
@@ -92,8 +79,8 @@ export function ProjetoDetalhes({ grupo, tcc }) {
           <S.FileInfo>
             <FileText size={17} />
             <span>
-              {isPublic
-                ? "O trabalho está registrado no acervo do BeeHub e pode ser acessado."
+              {grupo.status === "concluido"
+                ? "O trabalho está registrado no acervo do BeeHub."
                 : "Este projeto ainda está em desenvolvimento e seus arquivos internos não são públicos."}
             </span>
           </S.FileInfo>
