@@ -1,0 +1,36 @@
+package com.beehub.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+
+@Entity
+@Table(name = "professor")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Professor {
+
+    @Id
+    private Long rmProfessor;
+
+    @Column(length = 60, nullable = false)
+    private String senha;
+
+    @Column(length = 100, nullable = false)
+    private String nome;
+
+    @Column(length = 120)
+    private String email;
+
+    @Column(columnDefinition = "TEXT")
+    private String descricao;
+
+    private String linkFoto;
+
+    @OneToMany(mappedBy = "professor")
+    private List<Orientacao> orientacoes;
+}

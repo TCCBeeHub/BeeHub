@@ -1,0 +1,98 @@
+package com.beehub.security;
+
+import com.beehub.exceptions.AcessoNaoPermitidoException;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Component;
+
+/**
+ * Classe com o objetivo de garantir que a sessão seja específica de cada usuário (aluno, professor, admin)
+ *
+ * Importante: Diferenciar ações permitidas chamadas nas classes de Controller,
+ * requerindo que estejam logados para atribuir as funcionalidades.
+ *
+ */
+@Component
+public class SessaoValidator {
+    public static final String ADMINISTRADOR = "ADMINISTRADOR_AUTENTICADO";
+    public static final String ALUNO = "ALUNO_AUTENTICADO";
+    public static final String PROFESSOR = "PROFESSOR_AUTENTICADO";
+
+    public void validarAdmin(HttpSession session){
+        Object adminId = session.getAttribute(ADMINISTRADOR);
+
+        if(adminId == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+    }
+
+    public void validarAluno(HttpSession session, Long rmAluno){
+        Long alunoRM = (Long) session.getAttribute(ALUNO);
+
+        if(alunoRM == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        if(!alunoRM.equals(rmAluno)){
+            throw new AcessoNaoPermitidoException("Você não tem permissão para fazer isto!");
+        }
+    }
+
+    public Long validarAlunoLogado(HttpSession session){
+        Long alunoRM = (Long) session.getAttribute(ALUNO);
+
+        if(session.getAttribute(ALUNO) == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        return alunoRM;
+    }
+
+    public Long validarProfessorLogado(HttpSession session){
+        Long professorRM = (Long) session.getAttribute(PROFESSOR);
+
+        if(session.getAttribute(PROFESSOR) == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        return professorRM;
+    }
+
+    public void validarProfessor(HttpSession session, Long rmProfessor){
+        Long professorRM = (Long) session.getAttribute(PROFESSOR);
+
+        if(professorRM == null){
+            throw new AcessoNaoPermitidoException("É necessário realizar o login!");
+        }
+
+        if(!professorRM.equals(rmProfessor)){
+            throw new AcessoNaoPermitidoException("Você não tem permissão para fazer isto!");
+        }
+    }
+
+    public void validarAdminOuProfessor(HttpSession session){
+        if(session.getAttribute(ADMINISTRADOR) == null
+                && session.getAttribute(PROFESSOR) == null){
+            throw new AcessoNaoPermitidoException("Acesso restrito a professores/coordenação!");
+        }
+    }
+
+    public void validarAdminOuProfessorDono(HttpSession session, Long rmProfessor){
+        if(session.getAttribute(ADMINISTRADOR) != null) {
+            //É admin passa automaticamente
+        }
+        else if(session.getAttribute(PROFESSOR) != null){
+            validarProfessor(session, rmProfessor);
+        }
+        else{
+            throw new AcessoNaoPermitidoException("Você não tem permissão para fazer isto!");
+        }
+    }
+
+    public void validarAcessoInterno(HttpSession session){
+        if(session.getAttribute(ADMINISTRADOR) == null
+                && session.getAttribute(ALUNO) == null
+                && session.getAttribute(PROFESSOR) == null){
+            throw new AcessoNaoPermitidoException("Acesso restrito a alunos/professores/coordenação!");
+        }
+    }
+}

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const Wrapper = styled.header`
   position: fixed;
@@ -65,9 +65,13 @@ export const NavButton = styled.button`
   letter-spacing: 0.06em;
   padding: 9px 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${({ $active, theme }) => ($active ? theme.colors.textPrimary : theme.colors.textMuted)};
-  background: ${({ $active, theme }) => ($active ? theme.colors.bgSurfaceAlt : 'transparent')};
-  transition: background 0.15s ease, color 0.15s ease;
+  color: ${({ $active, theme }) =>
+    $active ? theme.colors.textPrimary : theme.colors.textMuted};
+  background: ${({ $active, theme }) =>
+    $active ? theme.colors.bgSurfaceAlt : "transparent"};
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     background: ${({ theme }) => theme.colors.bgSurfaceAlt};
@@ -77,6 +81,7 @@ export const NavButton = styled.button`
 
 export const UserArea = styled.div`
   display: flex;
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
@@ -115,7 +120,9 @@ export const LogoutButton = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   color: ${({ theme }) => theme.colors.textPrimary};
   background: ${({ theme }) => theme.colors.accentDim};
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
 
   &:hover {
     background: ${({ theme }) => theme.colors.accent};

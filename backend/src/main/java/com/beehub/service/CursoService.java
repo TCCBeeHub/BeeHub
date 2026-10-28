@@ -1,0 +1,163 @@
+package com.beehub.service;
+
+import com.beehub.dto.comum.CursoResumoDTO;
+import com.beehub.dto.comum.EtecResumoDTO;
+import com.beehub.dto.request.CursoRequestDTO;
+import com.beehub.dto.response.CursoResponseDTO;
+import com.beehub.dto.update.CursoRequestAtualizarDTO;
+import com.beehub.entity.Curso;
+import com.beehub.entity.Etec;
+import com.beehub.exceptions.*;
+import com.beehub.repository.AlunoRepository;
+import com.beehub.repository.CursoRepository;
+import com.beehub.repository.EtecRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class CursoService {
+    private final CursoRepository cursoRepository;
+    private final EtecRepository etecRepository;
+    private final AlunoRepository alunoRepository;
+
+    public CursoService(CursoRepository cursoRepository, EtecRepository etecRepository,
+                        AlunoRepository alunoRepository){
+        this.cursoRepository = cursoRepository;
+        this.etecRepository = etecRepository;
+        this.alunoRepository = alunoRepository;
+    }
+
+    @Transactional
+    public CursoResumoDTO cadastrarCurso(CursoRequestDTO dto){
+        String codEtec = dto.codEtec().trim();
+        String nomeCurso = dto.nome().trim();
+        String periodoCurso = dto.periodo().trim();
+
+        Etec etec = etecRepository.findEtecByCodEtec(codEtec)
+                .orElseThrow(EtecNaoEncontradaException::new);
+
+        validarCurso(dto);
+
+        Curso novoCurso = new Curso();
+
+        novoCurso.setEtec(etec);
+        novoCurso.setNome(nomeCurso);
+        novoCurso.setPeriodo(periodoCurso);
+
+        Curso curso = cursoRepository.save(novoCurso);
+
+        return new CursoResumoDTO(
+                curso.getIdCurso(),
+                curso.getEtec().getCodEtec(),
+                curso.getNome(),
+                curso.getPeriodo()
+        );
+    }
+
+    @Transactional
+    public CursoResumoDTO atualizarCurso(Long idCurso, CursoRequestAtualizarDTO dto){
+        Curso atualizarInfoCurso = cursoRepository.findCursoByIdCurso(idCurso)
+                .orElseThrow(CursoNaoEncontradoException::new);
+
+        String novoNome = dto.nome().trim();
+        String novoPeriodo = dto.periodo().trim();
+
+        if(cursoRepository.existsByNomeAndEtec_CodEtecAndIdCursoNotAndPeriodo
+                (novoNome, atualizarInfoCurso.getEtec().getCodEtec(), idCurso, novoPeriodo)){
+            throw new CursoJaEncontradoException("Já existe um curso com este nome na Etec " + atualizarInfoCurso.getEtec().getCodEtec() + "!");
+        }
+
+        atualizarInfoCurso.setNome(novoNome);
+        atualizarInfoCurso.setPeriodo(novoPeriodo);
+
+        Curso atualizacaoCurso = cursoRepository.save(atualizarInfoCurso);
+
+        return new CursoResumoDTO(
+                atualizacaoCurso.getIdCurso(),
+                atualizacaoCurso.getEtec().getCodEtec(),
+                atualizacaoCurso.getNome(),
+                atualizacaoCurso.getPeriodo()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public CursoResponseDTO listarCurso(Long idCurso, String codEtec){
+        String codEtecNormalizado = codEtec.trim();
+        validarCodEtec(codEtecNormalizado);
+
+        Curso curso = cursoRepository.findCursoByIdCursoAndEtec_CodEtec(idCurso, codEtecNormalizado)
+                .orElseThrow(() -> new CursoNaoEncontradoException("O ID deste curso não foi encontrado nesta etec."));
+
+        return new CursoResponseDTO(
+                curso.getIdCurso(),
+                curso.getNome(),
+                curso.getEtec().getCodEtec(),
+                alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
+                curso.getPeriodo()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<CursoResponseDTO> listarTodosOsCursos(){
+        List<Curso> cursos = cursoRepository.findAll();
+
+        return cursos.stream()
+                .map(curso -> new CursoResponseDTO(
+                        curso.getIdCurso(),
+                        curso.getNome(),
+                        curso.getEtec().getCodEtec(),
+                        alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
+                        curso.getPeriodo()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CursoResponseDTO> listarCursos(String codEtec){
+        String codEtecNormalizado = codEtec.trim();
+        validarCodEtec(codEtecNormalizado);
+
+        List<Curso> cursos = cursoRepository.findAllByEtec_CodEtec(codEtecNormalizado);
+
+        return cursos.stream()
+                .map(curso -> new CursoResponseDTO(
+                        curso.getIdCurso(),
+                        curso.getNome(),
+                        curso.getEtec().getCodEtec(),
+                        alunoRepository.countAlunoByCurso_IdCurso(curso.getIdCurso()),
+                        curso.getPeriodo()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void excluirCurso(Long idCurso){
+        Curso deletarCurso = cursoRepository.findCursoByIdCurso(idCurso)
+                .orElseThrow(CursoNaoEncontradoException::new);
+
+        if(!deletarCurso.getAlunos().isEmpty() || !deletarCurso.getOrientacoes().isEmpty()){
+            throw new RecursoNaoPermitidoException("Há dados dentro deste curso!");
+        }
+
+        cursoRepository.delete(deletarCurso);
+    }
+
+    private void validarCurso(CursoRequestDTO dto) {
+        String nome = dto.nome().trim();
+        String codEtec = dto.codEtec().trim();
+        String periodo = dto.periodo().trim();
+
+        if (cursoRepository.existsByNomeAndEtec_CodEtecAndPeriodo(nome, codEtec, periodo)) {
+            throw new CursoJaEncontradoException("Esse curso já existe nesta Etec!");
+        }
+    }
+
+    private void validarCodEtec(String codEtec){
+        boolean existsCodEtec = etecRepository.existsByCodEtec(codEtec.trim());
+
+        if(!existsCodEtec){
+            throw new EtecNaoEncontradaException();
+        }
+    }
+}

@@ -1,0 +1,11 @@
+services:
+  beehub:
+    build: .
+    image: beehub-api
+    env_file:
+      - .env.docker
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "8080:8080"

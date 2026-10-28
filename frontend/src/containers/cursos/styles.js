@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const PageContainer = styled.div`
   padding: 2rem;
@@ -9,14 +9,14 @@ export const PageContainer = styled.div`
 
 export const Title = styled.h1`
   font-size: 1.875rem;
-  color: #111827;
+  color: #ffffff;
   margin-bottom: 0.5rem;
   font-weight: 700;
 `;
 
 export const Subtitle = styled.p`
   font-size: 1rem;
-  color: #4b5563;
+  color: #adadad;
   margin-bottom: 2.5rem;
 `;
 
@@ -36,7 +36,9 @@ export const CursoCard = styled.div`
   align-items: center;
   text-align: center;
   border: 2px solid transparent; /* A cor da borda vem pelo style inline no componente */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease-in-out;
   cursor: pointer;
 
