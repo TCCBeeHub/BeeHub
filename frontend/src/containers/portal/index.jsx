@@ -31,7 +31,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import logo from "../../assets/images/BeeHubHorizontal.jpeg";
+import logo from "/imagens/BeeHubHorizontal.jpeg";
 import { createEntity, deleteEntity, getPortalData, updateEntity } from "../../services/portalApi";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
