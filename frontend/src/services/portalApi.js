@@ -1,7 +1,6 @@
-import { apiRequest } from "./httpClient";
+import { ApiError, apiRequest } from "./httpClient";
 
 const COLLECTION_PATHS = {
-  administradores: "/admin",
   etecs: "/etec",
   cursos: "/cursos",
   professores: "/professor",
@@ -50,6 +49,18 @@ async function getList(
   );
 }
 
+// Para quando "não existir" é um estado normal (ex.: grupo ainda sem TCC).
+async function getOptional(path, signal) {
+  try {
+    return await apiRequest(path, { signal });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+const enc = (value) => encodeURIComponent(String(value));
+
 function uniqueById(records, field) {
   return [...new Map(records.map((record) => [String(record[field]), record])).values()];
 }
@@ -96,15 +107,286 @@ function normalizeRecords(records, collection) {
   });
 }
 
-function filterByCourseAndClass(records, orientations) {
-  const allowedPairs = new Set(
-    orientations.map(
-      (orientation) => `${orientation.idCurso}:${orientation.turma}`,
+/* ------------------------------------------------------------------ */
+/* Adaptação: o backend devolve DTOs "resumo" (rmUsuario, codTcc, sem  */
+/* ids de relacionamento). As telas usam registros planos (rmAluno,    */
+/* rmProfessor, codTCC, idGrupo...). A tradução fica toda aqui.        */
+/* Quando o backend passar a enviar esses campos, eles têm prioridade. */
+/* ------------------------------------------------------------------ */
+
+function fromUsuario(record, field) {
+  const { rmUsuario, ...rest } = record;
+  return { ...rest, [field]: rest[field] ?? rmUsuario };
+}
+
+function fromTcc(record, fallbackStatus) {
+  const { codTcc, ...rest } = record;
+  return {
+    ...rest,
+    codTCC: rest.codTCC ?? codTcc,
+    status: rest.status ?? fallbackStatus,
+  };
+}
+
+// GET /orientacao* hoje só traz nomeCurso/nomeEtec/turma. Descobre o idCurso
+// cruzando pelos nomes (nome da Etec é único; nome do curso é único por Etec).
+function findCursoId(orientation, cursos, etecs) {
+  if (orientation.idCurso != null) return orientation.idCurso;
+  const etec = etecs.find((item) => item.nome === orientation.nomeEtec);
+  const curso = cursos.find(
+    (item) =>
+      item.nome === orientation.nomeCurso &&
+      (!etec || sameId(item.codEtec, etec.codEtec)),
+  );
+  return curso ? curso.idCurso : null;
+}
+
+function adaptOrientations(list, { rmProfessor, cursos, etecs }) {
+  return list.map((item, index) => ({
+    ...item,
+    // Sem idOrientacao na API, usa a posição só para identificar a linha na tela.
+    idOrientacao: item.idOrientacao ?? index + 1,
+    idCurso: findCursoId(item, cursos, etecs),
+    rmProfessor: item.rmProfessor ?? rmProfessor,
+  }));
+}
+
+// GET /tcc (público) não traz idGrupo: liga pelo nome quando o nome é único.
+function attachGroupId(tccs, groups) {
+  return tccs.map((tcc) => {
+    if (tcc.idGrupo != null) return tcc;
+    const matches = groups.filter((group) => group.nomeGrupo === tcc.nomeGrupo);
+    return matches.length === 1 ? { ...tcc, idGrupo: matches[0].idGrupo } : tcc;
+  });
+}
+
+async function loadStudents(courseIds, signal) {
+  const lists = await Promise.all(
+    courseIds.map(async (idCurso) => {
+      const list = await getList(`/aluno/curso/${enc(idCurso)}`, signal);
+      return list.map((item) => ({
+        idCurso: Number(idCurso),
+        ...fromUsuario(item, "rmAluno"),
+      }));
+    }),
+  );
+  return lists.flat();
+}
+
+async function loadProfessors(courseIds, signal) {
+  const lists = await Promise.all(
+    courseIds.map(async (idCurso) => {
+      const list = await getList(`/professor/curso/${enc(idCurso)}`, signal);
+      return list.map((item) => fromUsuario(item, "rmProfessor"));
+    }),
+  );
+  return lists.flat();
+}
+
+function finalize(data) {
+  return {
+    administradores: [],
+    etecs: data.etecs,
+    cursos: data.cursos,
+    professores: normalizeRecords(
+      uniqueById(data.professores, "rmProfessor"),
+      "professores",
     ),
+    alunos: normalizeRecords(uniqueById(data.alunos, "rmAluno"), "alunos"),
+    orientacoes: normalizeRecords(
+      uniqueById(data.orientacoes, "idOrientacao"),
+      "orientacoes",
+    ),
+    grupos: normalizeRecords(uniqueById(data.grupos, "idGrupo"), "grupos"),
+    tccs: normalizeRecords(data.tccs, "tccs"),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Um carregador por perfil. Cada um só chama rotas que o backend      */
+/* libera para aquele perfil (ver SessaoValidator nos controllers).    */
+/* ------------------------------------------------------------------ */
+
+async function loadAdminData({ base, signal }) {
+  // /orientacao e /grupo (listas gerais) são exclusivas de admin.
+  const [orientationList, groupList, tccList] = await Promise.all([
+    getList("/orientacao", signal),
+    getList("/grupo", signal),
+    getList("/tcc", signal),
+  ]);
+  const courseIds = base.cursos.map((curso) => curso.idCurso);
+  const [alunos, professores] = await Promise.all([
+    loadStudents(courseIds, signal),
+    loadProfessors(courseIds, signal),
+  ]);
+  const grupos = normalizeRecords(groupList, "grupos");
+
+  return finalize({
+    ...base,
+    professores,
+    alunos,
+    orientacoes: adaptOrientations(orientationList, {
+      cursos: base.cursos,
+      etecs: base.etecs,
+    }),
+    grupos,
+    // GET /tcc só devolve TCCs PUBLICADOS (não existe listagem geral ainda).
+    tccs: attachGroupId(
+      tccList.map((tcc) => fromTcc(tcc, "PUBLICADO")),
+      grupos,
+    ),
+  });
+}
+
+async function loadProfessorData({ base, user, signal }) {
+  const rm = user?.rmProfessor;
+  if (rm == null || rm === "") {
+    throw new Error("Não foi possível identificar o professor logado.");
+  }
+
+  const [profile, orientationList, groupList, tccList] = await Promise.all([
+    apiRequest(`/professor/${enc(rm)}`, { signal }),
+    getList(`/orientacao/professor/${enc(rm)}`, signal),
+    getList(`/grupo/professor/${enc(rm)}`, signal),
+    getList("/tcc", signal),
+  ]);
+
+  const orientacoes = adaptOrientations(orientationList, {
+    rmProfessor: String(rm),
+    cursos: base.cursos,
+    etecs: base.etecs,
+  });
+
+  // O detalhe do grupo traz nomeCurso/nomeEtec (para achar a orientação do
+  // grupo) e a lista de alunos.
+  const detalhes = await Promise.all(
+    groupList.map((grupo) => apiRequest(`/grupo/${enc(grupo.idGrupo)}`, { signal })),
   );
-  return records.filter((record) =>
-    allowedPairs.has(`${record.idCurso}:${record.turma}`),
+
+  const grupos = [];
+  const alunos = [];
+  groupList.forEach((grupo, index) => {
+    const detalhe = detalhes[index];
+    const orientacao =
+      orientacoes.length === 1
+        ? orientacoes[0]
+        : orientacoes.find(
+            (item) =>
+              item.nomeCurso === detalhe.nomeCurso &&
+              item.nomeEtec === detalhe.nomeEtec,
+          );
+
+    grupos.push({
+      ...grupo,
+      idOrientacao: grupo.idOrientacao ?? orientacao?.idOrientacao,
+    });
+    for (const membro of detalhe.alunos ?? []) {
+      alunos.push({
+        idGrupo: grupo.idGrupo,
+        idCurso: orientacao?.idCurso ?? undefined,
+        turma: orientacao?.turma,
+        ...fromUsuario(membro, "rmAluno"),
+      });
+    }
+  });
+
+  // Só dá para listar os TCCs já publicados dos grupos do professor: falta no
+  // backend uma rota que liste os demais (entregues/em andamento).
+  const nomesDosGrupos = new Set(grupos.map((grupo) => grupo.nomeGrupo));
+  const tccs = attachGroupId(
+    tccList
+      .filter(
+        (tcc) =>
+          nomesDosGrupos.has(tcc.nomeGrupo) &&
+          (tcc.nomeProfessor == null || tcc.nomeProfessor === profile?.nome),
+      )
+      .map((tcc) => fromTcc(tcc, "PUBLICADO")),
+    grupos,
   );
+
+  return finalize({
+    ...base,
+    cursos: base.cursos.filter((curso) =>
+      orientacoes.some((item) => sameId(item.idCurso, curso.idCurso)),
+    ),
+    professores: [
+      {
+        rmProfessor: String(rm),
+        nome: profile?.nome,
+        linkFoto: profile?.linkFoto ?? user.linkFoto,
+        email: user.email,
+        descricao: user.descricao,
+      },
+    ],
+    alunos,
+    orientacoes,
+    grupos,
+    tccs,
+  });
+}
+
+async function loadAlunoData({ base, user, signal }) {
+  const rm = user?.rmAluno;
+  if (rm == null || rm === "") {
+    throw new Error("Não foi possível identificar o aluno logado.");
+  }
+  const idGrupo = user.idGrupo ?? null;
+
+  // Aluno sem grupo é um estado válido: só não há grupo nem TCC para mostrar.
+  const [perfil, grupo, tcc] = await Promise.all([
+    apiRequest(`/aluno/${enc(rm)}`, { signal }),
+    idGrupo != null ? apiRequest(`/grupo/${enc(idGrupo)}`, { signal }) : null,
+    idGrupo != null ? getOptional(`/tcc/grupo/${enc(idGrupo)}`, signal) : null,
+  ]);
+
+  const idCurso = perfil?.curso?.idCurso ?? user.idCurso;
+  const turma = perfil?.turma ?? user.turma;
+  const aluno = {
+    rmAluno: String(rm),
+    nome: perfil?.nome,
+    linkFoto: perfil?.linkFoto ?? user.linkFoto,
+    email: user.email,
+    descricao: user.descricao,
+    turma,
+    idCurso,
+    idGrupo,
+  };
+  const colegas = (grupo?.alunos ?? [])
+    .map((membro) => ({
+      idGrupo,
+      idCurso,
+      turma,
+      ...fromUsuario(membro, "rmAluno"),
+    }))
+    .filter((membro) => !sameId(membro.rmAluno, rm));
+
+  const professores = grupo
+    ? (await loadProfessors([idCurso], signal)).filter(
+        (professor) => professor.nome === grupo.nomeOrientador,
+      )
+    : [];
+
+  return finalize({
+    ...base,
+    cursos: base.cursos.filter((curso) => sameId(curso.idCurso, idCurso)),
+    professores,
+    alunos: [aluno, ...colegas],
+    orientacoes: [],
+    grupos: grupo
+      ? [
+          {
+            idGrupo: grupo.idGrupo,
+            nomeGrupo: grupo.nomeGrupo,
+            linkFoto: grupo.linkFoto,
+            ano: grupo.ano,
+            nomeOrientador: grupo.nomeOrientador,
+            nomeEtec: grupo.nomeEtec,
+            nomeCurso: grupo.nomeCurso,
+          },
+        ]
+      : [],
+    tccs: tcc ? [{ ...fromTcc(tcc), idGrupo }] : [],
+  });
 }
 
 export async function getPortalData({ role, user, signal } = {}) {
@@ -120,176 +402,29 @@ export async function getPortalData({ role, user, signal } = {}) {
   );
   const cursoLists = await Promise.all(
     etecs.map((etec) =>
-      getList(
-        `/cursos/${encodeURIComponent(String(etec.codEtec))}`,
-        signal,
-        publicRequestOptions,
-      ),
+      getList(`/cursos/${enc(etec.codEtec)}`, signal, publicRequestOptions),
     ),
   );
   const cursos = normalizeRecords(cursoLists.flat(), "cursos");
-  const uniqueCursos = uniqueById(cursos, "idCurso");
+  const base = { etecs, cursos: uniqueById(cursos, "idCurso") };
 
   if (role === "visitante") {
-    const tccs = normalizeRecords(
-      await getList("/tcc", signal, publicRequestOptions),
-      "tccs",
-    ).filter((tcc) => ["APROVADO", "PUBLICADO"].includes(tcc.status));
-    return {
-      administradores: [],
-      etecs,
-      cursos: uniqueCursos,
+    const tccs = (await getList("/tcc", signal, publicRequestOptions)).map(
+      (tcc) => fromTcc(tcc, "PUBLICADO"),
+    );
+    return finalize({
+      ...base,
       professores: [],
       alunos: [],
       orientacoes: [],
       grupos: [],
       tccs,
-    };
+    });
   }
 
-  const baseRequests = [
-    getList("/orientacao", signal),
-    getList("/grupo", signal),
-    getList("/tcc", signal),
-  ];
-  if (role === "administrador") baseRequests.push(getList("/admin", signal));
-
-  const [orientationResponse, groupResponse, tccResponse, adminResponse = []] =
-    await Promise.all(baseRequests);
-  const allOrientations = normalizeRecords(orientationResponse, "orientacoes");
-  const allGroups = normalizeRecords(groupResponse, "grupos");
-  const allTccs = normalizeRecords(tccResponse, "tccs");
-  const studentCourseId =
-    role === "aluno" && user?.idCurso != null ? Number(user.idCurso) : null;
-  const professorOrientations =
-    role === "professor"
-      ? allOrientations.filter((item) =>
-          sameId(item.rmProfessor, user?.rmProfessor),
-        )
-      : [];
-  const courseIds =
-    role === "administrador"
-      ? uniqueCursos.map((item) => item.idCurso)
-      : role === "aluno"
-        ? studentCourseId == null ||
-          !Number.isSafeInteger(studentCourseId) ||
-          studentCourseId < 1
-          ? []
-          : [studentCourseId]
-        : uniqueById(professorOrientations, "idCurso").map(
-            (item) => item.idCurso,
-          );
-
-  if (role === "aluno" && courseIds.length === 0) {
-    throw new Error(
-      "O login do aluno precisa retornar idCurso para carregar os dados vinculados.",
-    );
-  }
-  if (role === "professor" && professorOrientations.length === 0) {
-    throw new Error(
-      "A API não retornou orientações vinculadas ao professor autenticado.",
-    );
-  }
-
-  const memberLists = await Promise.all(
-    courseIds.flatMap((idCurso) => [
-      getList(`/aluno/curso/${encodeURIComponent(String(idCurso))}`, signal),
-      getList(`/professor/curso/${encodeURIComponent(String(idCurso))}`, signal),
-    ]),
-  );
-  const allStudents = normalizeRecords(
-    memberLists.filter((_, index) => index % 2 === 0).flat(),
-    "alunos",
-  );
-  const allProfessors = normalizeRecords(
-    memberLists.filter((_, index) => index % 2 === 1).flat(),
-    "professores",
-  );
-  const ownStudent =
-    role === "aluno"
-      ? allStudents.find((item) => sameId(item.rmAluno, user?.rmAluno))
-      : null;
-  if (role === "aluno" && !ownStudent) {
-    throw new Error(
-      "A API não retornou o aluno autenticado na lista do curso.",
-    );
-  }
-  if (
-    role === "aluno" &&
-    !sameId(ownStudent.idCurso, user?.idCurso)
-  ) {
-    throw new Error(
-      "O curso do aluno retornado pela API não corresponde ao curso da sessão.",
-    );
-  }
-  const orientationRows =
-    role === "professor"
-      ? professorOrientations
-      : role === "aluno"
-        ? allOrientations.filter(
-            (item) =>
-              sameId(item.idCurso, ownStudent.idCurso) &&
-              String(item.turma) === String(ownStudent.turma),
-          )
-        : allOrientations;
-
-  const groups =
-    role === "administrador"
-      ? allGroups
-      : role === "aluno"
-        ? allGroups.filter((item) =>
-            sameId(item.idGrupo, user?.idGrupo ?? ownStudent?.idGrupo),
-          )
-        : allGroups.filter((item) =>
-            orientationRows.some((orientation) =>
-              sameId(orientation.idOrientacao, item.idOrientacao),
-            ),
-          );
-  const groupIds = new Set(groups.map((item) => String(item.idGrupo)));
-  const scopedOrientations =
-    role === "administrador"
-      ? allOrientations
-      : orientationRows;
-  const students =
-    role === "administrador"
-      ? allStudents
-      : role === "aluno"
-        ? allStudents.filter((item) =>
-            sameId(item.rmAluno, user?.rmAluno),
-          )
-        : filterByCourseAndClass(allStudents, orientationRows);
-  const professors =
-    role === "administrador"
-      ? allProfessors
-      : role === "professor"
-        ? allProfessors.filter((item) =>
-            sameId(item.rmProfessor, user?.rmProfessor),
-          )
-        : allProfessors.filter((item) =>
-            orientationRows.some((orientation) =>
-              sameId(orientation.rmProfessor, item.rmProfessor),
-            ),
-          );
-  const tccs =
-    role === "administrador"
-      ? allTccs
-      : allTccs.filter((item) => groupIds.has(String(item.idGrupo)));
-
-  return {
-    administradores: normalizeRecords(adminResponse, "administradores"),
-    etecs,
-    cursos:
-      role === "administrador"
-        ? uniqueCursos
-        : uniqueCursos.filter((item) =>
-            courseIds.some((id) => sameId(id, item.idCurso)),
-          ),
-    professores: uniqueById(professors, "rmProfessor"),
-    alunos: uniqueById(students, "rmAluno"),
-    orientacoes: uniqueById(scopedOrientations, "idOrientacao"),
-    grupos: uniqueById(groups, "idGrupo"),
-    tccs,
-  };
+  if (role === "administrador") return loadAdminData({ base, signal });
+  if (role === "professor") return loadProfessorData({ base, user, signal });
+  return loadAlunoData({ base, user, signal });
 }
 
 export function createEntity(collection, record) {
