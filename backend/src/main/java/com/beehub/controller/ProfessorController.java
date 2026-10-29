@@ -64,7 +64,8 @@ public class ProfessorController {
 
     @GetMapping("/{rmProfessor}")
     @ResponseStatus(HttpStatus.OK)
-    public ProfessorResumoDTO listarProfessor(@PathVariable Long rmProfessor, HttpSession session){
+    public ProfessorResumoDTO listarProfessor(@PathVariable Long rmProfessor,
+                                              HttpSession session){
         sessaoValidator.validarAcessoInterno(session);
         return professorService.listarProfessor(rmProfessor);
     }

@@ -177,7 +177,7 @@ public class TccService {
         LocalDate validarEntrega = LocalDate.of(LocalDate.now().getYear(), Month.OCTOBER, 30);
 
         if(LocalDate.now().isBefore(validarEntrega)){
-            throw new TccAindaNaoPodeSerEntregueException("A entrega dos trabalhos será liberada após 30/10!");
+            throw new RecursoNaoPermitidoException("A entrega dos trabalhos será liberada após 30/10!");
         }
 
         tcc.setStatus(StatusTcc.ENTREGUE);
@@ -205,7 +205,7 @@ public class TccService {
         LocalDate validarAprovacao = LocalDate.of(LocalDate.now().getYear(), Month.NOVEMBER, 20);
 
         if(LocalDate.now().isBefore(validarAprovacao)){
-            throw new TccAindaNaoPodeSerAvaliadoException("O resultado será feito após a banca final!");
+            throw new TccAindaNaoPodeSerAvaliadoException("A aprovação será feita após a banca final!");
         }
 
         tcc.setStatus(StatusTcc.APROVADO);
@@ -232,7 +232,7 @@ public class TccService {
         LocalDate validarReprovacao = LocalDate.of(LocalDate.now().getYear(), Month.NOVEMBER, 20);
 
         if(LocalDate.now().isBefore(validarReprovacao)){
-            throw new TccAindaNaoPodeSerAvaliadoException("O resultado será feito após a banca final!");
+            throw new TccAindaNaoPodeSerAvaliadoException("A aprovação será feita após a banca final!");
         }
 
         tcc.setStatus(StatusTcc.REPROVADO);

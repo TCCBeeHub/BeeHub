@@ -38,7 +38,7 @@ public class AlunoController {
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
     public AlunoLoginResponseDTO loginAluno(@Valid @RequestBody AlunoLoginRequestDTO dto,
-                                            HttpSession session){
+                                       HttpSession session){
 
         AlunoLoginResponseDTO aluno = alunoService.loginAluno(dto);
 

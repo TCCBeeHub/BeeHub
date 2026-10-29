@@ -2,6 +2,7 @@ package com.beehub.controller;
 
 import com.beehub.dto.request.OrientacaoRequestDTO;
 import com.beehub.dto.response.OrientacaoResponseDTO;
+import com.beehub.exceptions.AcessoNaoPermitidoException;
 import com.beehub.security.SessaoValidator;
 import com.beehub.service.OrientacaoService;
 import jakarta.servlet.http.HttpSession;

@@ -71,7 +71,7 @@ public class SessaoValidator {
 
     public void validarAdminOuProfessor(HttpSession session){
         if(session.getAttribute(ADMINISTRADOR) == null
-                && session.getAttribute(PROFESSOR) == null){
+        && session.getAttribute(PROFESSOR) == null){
             throw new AcessoNaoPermitidoException("Acesso restrito a professores/coordenação!");
         }
     }
@@ -90,8 +90,8 @@ public class SessaoValidator {
 
     public void validarAcessoInterno(HttpSession session){
         if(session.getAttribute(ADMINISTRADOR) == null
-                && session.getAttribute(ALUNO) == null
-                && session.getAttribute(PROFESSOR) == null){
+        && session.getAttribute(ALUNO) == null
+        && session.getAttribute(PROFESSOR) == null){
             throw new AcessoNaoPermitidoException("Acesso restrito a alunos/professores/coordenação!");
         }
     }
