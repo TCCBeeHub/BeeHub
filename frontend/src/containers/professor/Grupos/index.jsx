@@ -17,7 +17,7 @@ const ALUNOS = gruposIniciais.flatMap((grupo) =>
     nome,
     email:
       grupo.emails?.[index] ||
-      `${nome.toLowerCase().replace(/\s+/g, ".")}@etec.sp.gov.br`,
+      `${nome.toLowerCase().replace(/\s+/g, ".")}@aluno.cps.sp.gov.br`,
   })),
 );
 
