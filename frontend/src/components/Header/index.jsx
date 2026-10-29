@@ -1,7 +1,7 @@
 import { User, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom"; // Importando navegação do React Router
 import { useAuth } from "../../context/AuthContext";
-import LogoUm from "../../assets/images/BeeHubIcon.jpeg";
+import LogoUm from "/imagens/BeeHubIcon.jpeg";
 import * as S from "./styles";
 
 // Transformamos o array simples em um array de objetos com os caminhos (paths)
