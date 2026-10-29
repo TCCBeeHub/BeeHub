@@ -1,9 +1,14 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
-  /\/+$/,
-  "",
-);
-const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
+// const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
+//   /\/+$/,
+//   "",
+// );
 
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL ="https://beehub.onrender.com"
+
+const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
+const dados = await apiRequest("/etec");
+console.log("Dados recebidos:", dados);
 export class ApiError extends Error {
   constructor(message, status) {
     super(message);
