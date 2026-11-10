@@ -23,6 +23,9 @@ export const NAV_ITEMS = {
   professor: [
     { id: "home", label: "Visão geral", path: "/", icon: LayoutDashboard },
     { id: "grupos", label: "Grupos atribuídos", path: "/grupos", icon: UsersRound },
+    { id: "orientacoes", label: "Orientações", path: "/orientacoes", icon: ClipboardList },
+    { id: "tccs", label: "TCCs orientados", path: "/tccs", icon: FileText },
+    { id: "conversas", label: "Conversas", path: "/conversas", icon: MessageCircle },
     { id: "perfil", label: "Meu perfil", path: "/perfil", icon: UserRound },
   ],
   administrador: [

@@ -97,7 +97,6 @@ O tema claro/escuro está disponível na tela de login e no painel e a preferên
 - `src/containers/portal/portal-config.js`: rótulos, configuração das entidades, navegação e permissões declarativas.
 - `src/containers/portal/portal-data.js` e `portal-records.js`: filtros, formatação, validações e regras de cadastro.
 - `src/containers/portal/LoginPage.jsx`, `Dashboard.jsx`, `ResourcePage.jsx`, `EntityForms.jsx` e `ConversationPage.jsx`: telas organizadas por fluxo.
-- `src/containers/portal/GroupWorkspace.jsx`: espaço de grupo com integrantes, TCC e conversas.
 - `src/containers/portal/PortalShared.jsx`: componentes visuais reutilizados pelas telas.
 - `src/containers/portal/portal.css`: visual claro/escuro e layout responsivo.
 - `src/context/AuthContext.jsx`: estado visual da sessão e acesso visitante; a autenticação real é mantida pelo cookie do backend.

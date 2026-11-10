@@ -26,23 +26,16 @@ export function EntityForm({
     professores: ["rmProfessor", "nome"],
     alunos: ["rmAluno", "nome", "turma", "idCurso"],
   };
-  const professorCreateFields = {
-    grupos: ["idGrupo", "nomeGrupo", "idOrientacao", "linkFoto", "ano", "capacidadeMaxima"],
-  };
   const allowedFields = editing
     ? editableFields(role, collection, config)
     : role === "administrador"
       ? [...editableFields(role, collection, config), accountPasswordField]
-      : role === "professor" && collection === "grupos"
-        ? professorCreateFields.grupos
       : collection === "tccs"
         ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
         : [];
   const formFields =
     !editing && role === "administrador" && adminCreateFields[collection]
       ? adminCreateFields[collection]
-      : !editing && role === "professor" && professorCreateFields[collection]
-        ? professorCreateFields[collection]
       : config.fields;
   const fields = [...formFields, accountPasswordField].filter(Boolean).filter(
     (field) =>
@@ -85,12 +78,7 @@ export function EntityForm({
       return availableGroups.map((item) => [item.idGrupo, item.nomeGrupo]);
     }
     if (field === "idOrientacao") {
-      const orientations = role === "professor"
-        ? data.orientacoes.filter(
-            (item) => item.rmProfessor === user?.rmProfessor,
-          )
-        : data.orientacoes;
-      return orientations.map((item) => [
+      return data.orientacoes.map((item) => [
         item.idOrientacao,
         `RM ${item.rmProfessor} · Curso ${item.idCurso} · Turma ${item.turma}`,
       ]);

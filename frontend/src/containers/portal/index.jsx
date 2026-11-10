@@ -11,8 +11,7 @@ import { Dashboard } from "./Dashboard";
 import { ConversationPage } from "./ConversationPage";
 import { EntityForm, DetailDialog } from "./EntityForms";
 import { ResourcePage } from "./ResourcePage";
-import { EmptyState, PublicCourseTccPage, ThemeToggle, UserProfilePage } from "./PortalShared";
-import { GroupWorkspace } from "./GroupWorkspace";
+import { EmptyState, PublicCourseTccPage, StudentProfilePage, ThemeToggle } from "./PortalShared";
 import "./portal.css";
 
 export { LoginPage } from "./LoginPage";
@@ -88,15 +87,6 @@ export function PortalApp() {
     return <Navigate to="/" replace />;
   }
   if (
-    role === "professor" &&
-    ["orientacoes", "tccs", "conversas"].includes(section)
-  ) {
-    return <Navigate to="/grupos" replace />;
-  }
-  if (section === "group-detail" && role !== "professor") {
-    return <Navigate to="/grupos" replace />;
-  }
-  if (
     collection &&
     !allowedSections.has(collection) &&
     !(role === "aluno" && collection === "cursos")
@@ -113,14 +103,6 @@ export function PortalApp() {
     const expected = section === "tcc-detail" ? "tccs" : "cursos";
     if (role !== "administrador" && !allowedSections.has(expected)) {
       return <Navigate to="/" replace />;
-    }
-  }
-  if (!record && targetCollection === "grupos" && role === "professor") {
-    const orientations = data.orientacoes.filter(
-      (item) => item.rmProfessor === user?.rmProfessor,
-    );
-    if (orientations.length === 1) {
-      draft.idOrientacao = orientations[0].idOrientacao;
     }
   }
 
@@ -141,7 +123,7 @@ export function PortalApp() {
     setFormError("");
   };
 
-  const openEditor = (targetCollection, record, groupId) => {
+  const openEditor = (targetCollection, record) => {
     setFormError("");
     const draft = record || { ...getBlankRecord(targetCollection, data) };
     if (!record && ACCOUNT_PASSWORD_FIELDS[targetCollection]) {
@@ -149,7 +131,6 @@ export function PortalApp() {
     }
     if (!record && targetCollection === "tccs") {
       draft.codTCC = getNextTccCode(data);
-      if (groupId != null) draft.idGrupo = Number(groupId);
       if (role === "aluno") draft.idGrupo = Number(user?.idGrupo) || "";
       if (role === "professor") {
         const assignedGroups = filterCollection(role, user, data, "grupos").filter(
@@ -170,14 +151,7 @@ export function PortalApp() {
   const saveRecord = async (event) => {
     event.preventDefault();
     const { collection: targetCollection, record, editing, editingKey } = dialog;
-    const message = validateRecord(
-      targetCollection,
-      record,
-      data,
-      editingKey,
-      role,
-      user,
-    );
+    const message = validateRecord(targetCollection, record, data, editingKey);
     if (message) {
       setFormError(message);
       return;
@@ -248,13 +222,23 @@ export function PortalApp() {
   } else if (section === "perfil") {
     const profileCollection = role === "aluno" ? "alunos" : "professores";
     const profileRows = filterCollection(role, user, data, profileCollection);
-    page = (
-      <UserProfilePage
-        role={role}
-        collection={profileCollection}
+    page = role === "aluno" ? (
+      <StudentProfilePage
         record={profileRows[0]}
         data={data}
         onEdit={() => profileRows[0] && openEditor(profileCollection, profileRows[0])}
+      />
+    ) : (
+      <ResourcePage
+        role={role}
+        user={user}
+        data={data}
+        collection={profileCollection}
+        rows={profileRows}
+        onEdit={(record) => openEditor(profileCollection, record)}
+        onCreate={() => openEditor(profileCollection, null)}
+        onDetail={(record) => setDialog({ type: "detail", collection: profileCollection, record })}
+        search={search}
       />
     );
   } else if (section === "conversas") {
@@ -282,25 +266,6 @@ export function PortalApp() {
       />
     ) : (
       <EmptyState title="Curso não encontrado" text="O curso selecionado não está disponível." />
-    );
-  } else if (section === "group-detail") {
-    const groupId = getPathRecordId(location.pathname);
-    const group = filterCollection(role, user, data, "grupos").find(
-      (item) => matchesId(item.idGrupo, groupId),
-    );
-    const tcc = group
-      ? data.tccs.find((item) => matchesId(item.idGrupo, group.idGrupo))
-      : null;
-    page = (
-      <GroupWorkspace
-        group={group}
-        user={user}
-        data={data}
-        tcc={tcc}
-        canEditTcc={Boolean(tcc && canEdit(role, "tccs", tcc, user, data))}
-        onCreateTcc={() => group && openEditor("tccs", null, group.idGrupo)}
-        onEditTcc={() => tcc && openEditor("tccs", tcc)}
-      />
     );
   } else if (isDetails) {
     const targetCollection = "tccs";
@@ -360,17 +325,15 @@ export function PortalApp() {
         <div className="workspace-label">ESPAÇO DE TRABALHO</div>
         <nav className="app-navigation" aria-label="Navegação principal">
           {menu.map(({ id, label, path, icon: Icon }) => {
-            const isActive =
-              section === id || (id === "grupos" && section === "group-detail");
             return (
             <Link
               key={id}
-              className={`navigation-link ${isActive ? "is-active" : ""}`}
+              className={`navigation-link ${section === id ? "is-active" : ""}`}
               to={path}
             >
               <Icon size={18} strokeWidth={1.9} />
               <span>{label}</span>
-              {isActive && <span className="navigation-indicator" />}
+              {section === id && <span className="navigation-indicator" />}
             </Link>
             );
           })}

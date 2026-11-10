@@ -3,15 +3,7 @@ import { MessageCircle } from "lucide-react";
 import { CHAT_MESSAGES } from "./portal-data";
 import { EmptyState, PageHeading } from "./PortalShared";
 
-export function ConversationPage({
-  role,
-  user,
-  data,
-  selected,
-  onSelect,
-  groupId,
-  groupName,
-}) {
+export function ConversationPage({ role, user, data, selected, onSelect }) {
   const [currentSelection, setCurrentSelection] = useState(selected);
   const contacts = useMemo(() => {
     if (role === "aluno") {
@@ -36,12 +28,7 @@ export function ConversationPage({
     );
     const groupIds = new Set(
       data.grupos
-        .filter((item) =>
-          orientations.some(
-            (orientation) => orientation.idOrientacao === item.idOrientacao,
-          ) &&
-          (groupId == null || String(item.idGrupo) === String(groupId)),
-        )
+        .filter((item) => orientations.some((orientation) => orientation.idOrientacao === item.idOrientacao))
         .map((item) => item.idGrupo),
     );
     return data.alunos
@@ -52,7 +39,7 @@ export function ConversationPage({
         subtitle: student.email,
         preview: data.grupos.find((item) => item.idGrupo === student.idGrupo)?.nomeGrupo || "Grupo vinculado",
       }));
-  }, [data, groupId, role, user]);
+  }, [data, role, user]);
   const activeId = contacts.some((contact) => contact.id === currentSelection)
     ? currentSelection
     : contacts[0]?.id;
@@ -68,7 +55,7 @@ export function ConversationPage({
     <>
       <PageHeading
         eyebrow="ORIENTAÇÃO ENTRE ALUNO E PROFESSOR"
-        title={groupName ? `Conversas · ${groupName}` : "Conversas"}
+        title="Conversas"
         description="A interface de conversas será conectada em uma etapa futura."
       />
       <div className="chat-stage-note">
