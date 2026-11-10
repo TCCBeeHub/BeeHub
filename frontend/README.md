@@ -51,7 +51,7 @@ O front-end não chama um endpoint agregado `/portal`; ele combina as rotas exis
 | Professores de um curso | `GET /professor/curso/{idCurso}` |
 | Orientações | `GET /orientacao` |
 | Grupos | `GET /grupo` (o backend deve aplicar o escopo da sessão para perfis autenticados) |
-| TCCs | `GET /tcc`; visitante vê apenas `APROVADO` ou `PUBLICADO` |
+| TCCs | `GET /tcc`; visitante vê apenas `APROVADO` ou `PUBLICADO`; cada item público deve informar `idCurso` ou `nomeCurso` para permitir a navegação por curso |
 | Administradores | `GET /admin` (painel administrativo) |
 
 As rotas de lista devem retornar arrays JSON (também são aceitos arrays sob `data`, `content` ou `items`). Para carregar associações, o cliente consulta alunos/professores pelos IDs de curso encontrados. A resposta é filtrada no frontend para mostrar ao aluno apenas seu próprio perfil/grupo/TCC e ao professor somente orientações, turmas, grupos e TCCs vinculados. O backend deve ainda proteger cada endpoint e filtrar sua resposta por sessão; os filtros do navegador não são uma barreira de segurança.
@@ -71,9 +71,9 @@ As rotas de lista devem retornar arrays JSON (também são aceitos arrays sob `d
 | Grupos | `/grupo` |
 | TCCs | `/tcc` |
 
-Para criar, atualizar e excluir, o cliente usa respectivamente `POST {rota-base}`, `PUT {rota-base}/{chave}` e `DELETE {rota-base}/{chave}`. O corpo de criação de conta inclui `senha` (ou `senhaAdmin`) uma única vez. Após uma alteração, o cliente recarrega as listas pelos endpoints acima. Pode-se responder `200` ou `204` às operações de escrita. Erros devem usar status HTTP adequado e, quando possível, JSON com `message` ou `detail`. O servidor deve armazenar senhas somente com hash seguro e nunca devolvê-las.
+Para criar, atualizar e excluir, o cliente usa respectivamente `POST {rota-base}`, `PUT {rota-base}/{chave}` e `DELETE {rota-base}/{chave}`. O corpo de criação de conta inclui `senha` (ou `senhaAdmin`) uma única vez. O `idCurso` é gerado pelo banco e não deve ser enviado no cadastro; novos alunos e professores recebem `nome`, e o vínculo do aluno com grupo pode ser feito posteriormente. Após uma alteração, o cliente recarrega as listas pelos endpoints acima. Pode-se responder `200` ou `204` às operações de escrita. Erros devem usar status HTTP adequado e, quando possível, JSON com `message` ou `detail`. O servidor deve armazenar senhas somente com hash seguro e nunca devolvê-las.
 
-O MER representado inclui: Administrador (`idAdmin`, `userAdmin`, `senhaAdmin`); ETEC (`codEtec`, `nome`); Curso (`idCurso`, `nome`, `quantAlunos`, `periodo`, `codEtec`); Aluno (`rmAluno`, `senha`, `email`, `linkFoto`, `descricao`, `turma`, `idGrupo`, `idCurso`); Professor (`rmProfessor`, `senha`, `email`, `linkFoto`, `descricao`); Orientação (`idOrientacao`, `idCurso`, `rmProfessor`, `turma`); Grupo (`idGrupo`, `nomeGrupo`, `idOrientacao`, `linkFoto`, `ano`, `capacidadeMaxima`); TCC (`codTCC`, `tema`, `linkSlide`, `linkArtigo`, `status`, `idGrupo`, `descricao`, `linkSite`, `dataCriacao`).
+O MER representado inclui: Administrador (`idAdmin`, `userAdmin`, `senhaAdmin`); ETEC (`codEtec`, `nome`); Curso (`idCurso`, `nome`, `quantAlunos`, `periodo`, `codEtec`); Aluno (`rmAluno`, `nome`, `senha`, `email`, `linkFoto`, `descricao`, `turma`, `idGrupo` opcional, `idCurso`); Professor (`rmProfessor`, `nome`, `senha`, `email`, `linkFoto`, `descricao`); Orientação (`idOrientacao`, `idCurso`, `rmProfessor`, `turma`); Grupo (`idGrupo`, `nomeGrupo`, `idOrientacao`, `linkFoto`, `ano`, `capacidadeMaxima`); TCC (`codTCC`, `tema`, `linkSlide`, `linkArtigo`, `status`, `idGrupo`, `descricao`, `linkSite`, `dataCriacao`).
 
 As regras de relação atualmente verificadas também na interface incluem referências existentes, correspondência entre o curso do aluno e o da orientação do grupo, capacidade máxima do grupo, um TCC por grupo e prevenção de exclusões com dependências. O backend permanece a autoridade final dessas validações.
 
@@ -81,10 +81,10 @@ As regras de relação atualmente verificadas também na interface incluem refer
 
 | Acesso | Escopo da interface |
 | --- | --- |
-| Visitante | Início público, cursos e TCCs aprovados/publicados, sem dados pessoais |
-| Aluno | Próprio perfil, grupo, TCC e orientação relacionada; conversa ainda não integrada |
+| Visitante | Início público, cursos com acesso aos TCCs públicos por curso e acervo completo de TCCs aprovados/publicados, sem dados pessoais |
+| Aluno | Próprio perfil, grupo, TCC e orientação relacionada; Meu TCC e Conversas aparecem somente quando há grupo |
 | Professor | Próprio perfil, orientações, grupos e TCCs sob sua orientação; conversa ainda não integrada |
-| Administrador | Gestão das oito entidades do MER |
+| Administrador | Gestão por cards das entidades disponíveis, exceto cadastro/listagem de administradores |
 
 Não existe papel de coordenador. O chat não faz parte das entidades do MER: a rota contém somente mensagens estáticas de exemplo, o envio é desativado e a tela avisa **“Módulo previsto para a próxima etapa”**. A autenticação e os dados do painel não têm fallback local.
 
@@ -93,7 +93,11 @@ Não existe papel de coordenador. O chat não faz parte das entidades do MER: a 
 O tema claro/escuro está disponível na tela de login e no painel e a preferência fica salva neste navegador. Organização principal:
 
 - `src/App.jsx`: rotas públicas, autenticação e painel.
-- `src/containers/portal/index.jsx`: login, navegação por papel, painéis, formulários e chat futuro.
+- `src/containers/portal/index.jsx`: entrada do portal, navegação por papel e orquestração das telas.
+- `src/containers/portal/portal-config.js`: rótulos, configuração das entidades, navegação e permissões declarativas.
+- `src/containers/portal/portal-data.js` e `portal-records.js`: filtros, formatação, validações e regras de cadastro.
+- `src/containers/portal/LoginPage.jsx`, `Dashboard.jsx`, `ResourcePage.jsx`, `EntityForms.jsx` e `ConversationPage.jsx`: telas organizadas por fluxo.
+- `src/containers/portal/PortalShared.jsx`: componentes visuais reutilizados pelas telas.
 - `src/containers/portal/portal.css`: visual claro/escuro e layout responsivo.
 - `src/context/AuthContext.jsx`: estado visual da sessão e acesso visitante; a autenticação real é mantida pelo cookie do backend.
 - `src/context/ThemeContext.jsx`: preferência de tema.

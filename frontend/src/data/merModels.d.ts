@@ -30,19 +30,21 @@ export interface Curso {
 export interface Professor {
   rmProfessor: string;
   senha: string;
-  email: string;
-  linkFoto: string;
+  nome: string;
+  email?: string;
+  linkFoto?: string;
   descricao?: string;
 }
 
 export interface Aluno {
   rmAluno: string;
   senha: string;
-  email: string;
-  linkFoto: string;
+  nome: string;
+  email?: string;
+  linkFoto?: string;
   descricao?: string;
   turma: Turma;
-  idGrupo: number;
+  idGrupo?: number;
   idCurso: number;
 }
 
