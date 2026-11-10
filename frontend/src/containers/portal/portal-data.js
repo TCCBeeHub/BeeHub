@@ -11,6 +11,7 @@ export function getSectionFromPath(pathname) {
   if (pathname === "/projetos" || pathname === "/revisoes") return "tccs";
   if (pathname.startsWith("/projeto/")) return "tcc-detail";
   if (pathname.startsWith("/tcc/")) return "tcc-detail";
+  if (pathname.startsWith("/grupo/")) return "group-detail";
   if (pathname.startsWith("/curso/")) return "curso-tccs";
   const segment = pathname.split("/").filter(Boolean)[0];
   return segment || "home";
@@ -186,6 +187,7 @@ export function buildDeleteError(collection, record, data) {
 }
 
 export function getPageTitle(section, role) {
+  if (section === "group-detail") return "Espaço do grupo";
   if (section === "curso-tccs") return "TCCs do curso";
   if (section === "perfil") return "Meu perfil";
   if (section === "conversas") return "Conversas";

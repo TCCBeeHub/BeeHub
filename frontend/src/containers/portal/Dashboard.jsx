@@ -115,7 +115,7 @@ export function Dashboard({ role, user, data }) {
           eyebrow="ACOMPANHAMENTO"
           title="Grupos sob sua orientação"
           description="As informações exibidas correspondem somente às suas orientações."
-          action={<Link className="text-link" to="/orientacoes">Ver orientações <ArrowRight size={16} /></Link>}
+          action={<Link className="text-link" to="/grupos">Ver meus grupos <ArrowRight size={16} /></Link>}
         />
         <GroupCards data={data} groups={teacherGroups} />
       </>

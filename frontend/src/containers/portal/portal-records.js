@@ -55,7 +55,7 @@ export function getNextTccCode(data) {
   return `TCC-${new Date().getFullYear()}-${String(next).padStart(3, "0")}`;
 }
 
-export function validateRecord(collection, record, data, editingKey) {
+export function validateRecord(collection, record, data, editingKey, role, user) {
   const config = COLLECTION_CONFIG[collection];
   const key = config.key;
   const generatedCourseId = collection === "cursos" && !editingKey;
@@ -114,6 +114,17 @@ export function validateRecord(collection, record, data, editingKey) {
     )
   ) {
     return "Selecione uma orientação cadastrada.";
+  }
+  if (
+    collection === "grupos" &&
+    role === "professor" &&
+    !data.orientacoes.some(
+      (item) =>
+        item.idOrientacao === Number(record.idOrientacao) &&
+        item.rmProfessor === user?.rmProfessor,
+    )
+  ) {
+    return "Selecione uma orientação vinculada ao seu perfil.";
   }
   if (collection === "alunos") {
     const course = data.cursos.find(
@@ -207,6 +218,11 @@ export function canEdit(role, collection, record, user, data) {
 
 export function canCreate(role, collection, data, user) {
   if (role === "administrador") return true;
+  if (role === "professor" && collection === "grupos") {
+    return data.orientacoes.some(
+      (orientation) => orientation.rmProfessor === user?.rmProfessor,
+    );
+  }
   if (collection !== "tccs" || !["aluno", "professor"].includes(role)) return false;
   const groupIds =
     role === "aluno"

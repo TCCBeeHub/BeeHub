@@ -164,8 +164,8 @@ export function GroupCards({ data, groups }) {
               <span>{tcc ? STATUS_LABELS[tcc.status] : "Sem TCC"}</span>
             </div>
             {tcc && <div className="group-tcc-preview"><small>TCC</small><strong>{tcc.tema}</strong></div>}
-            <Link className="inline-action" to="/tccs">
-              Ver acompanhamento <ArrowRight size={15} />
+            <Link className="inline-action" to={`/grupo/${encodeURIComponent(group.idGrupo)}`}>
+              Abrir grupo <ArrowRight size={15} />
             </Link>
           </article>
         );
@@ -174,18 +174,18 @@ export function GroupCards({ data, groups }) {
   );
 }
 
-export function StudentProfilePage({ record, data, onEdit }) {
+export function UserProfilePage({ role, collection, record, data, onEdit }) {
   const [photoError, setPhotoError] = useState(false);
   if (!record) {
-    return <EmptyState title="Perfil não encontrado" text="Não foi possível carregar as informações do aluno." />;
+    return <EmptyState title="Perfil não encontrado" text="Não foi possível carregar as informações do perfil." />;
   }
-  const fields = getDetailFields("aluno", "alunos", COLLECTION_CONFIG.alunos);
+  const fields = getDetailFields(role, collection, COLLECTION_CONFIG[collection]);
   return (
     <>
       <PageHeading
         eyebrow="SEUS DADOS"
         title="Meu perfil"
-        description="Confira suas informações acadêmicas e dados de perfil."
+        description="Confira suas informações pessoais e dados do perfil."
         action={
           <button className="button button-primary" onClick={onEdit}>
             <Pencil size={16} /> Editar informações
@@ -198,7 +198,7 @@ export function StudentProfilePage({ record, data, onEdit }) {
             <img
               className="student-profile-photo"
               src={record.linkFoto}
-              alt={`Foto de ${record.nome || `RM ${record.rmAluno}`}`}
+              alt={`Foto de ${record.nome || `RM ${record.rmAluno || record.rmProfessor}`}`}
               onError={() => setPhotoError(true)}
             />
           ) : (
@@ -207,9 +207,9 @@ export function StudentProfilePage({ record, data, onEdit }) {
             </span>
           )}
           <div>
-            <span className="eyebrow">ALUNO</span>
-            <h2>{record.nome || `RM ${record.rmAluno}`}</h2>
-            <p>RM {record.rmAluno}</p>
+            <span className="eyebrow">{role === "aluno" ? "ALUNO" : "PROFESSOR"}</span>
+            <h2>{record.nome || `RM ${record.rmAluno || record.rmProfessor}`}</h2>
+            <p>RM {record.rmAluno || record.rmProfessor}</p>
           </div>
         </div>
         <dl className="detail-grid">
@@ -219,7 +219,7 @@ export function StudentProfilePage({ record, data, onEdit }) {
               <dd>
                 {field.startsWith("link") && record[field]
                   ? <SafeExternalLink href={record[field]} />
-                  : formatValue("alunos", field, record[field], data)}
+                  : formatValue(collection, field, record[field], data)}
               </dd>
             </div>
           ))}

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Eye, FileText, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { COLLECTION_CONFIG, FIELD_LABELS, formatValue, ROLE_LABELS, STATUS_LABELS } from "./portal-data";
 import { canCreate, canEdit } from "./portal-records";
-import { DetailCard, EmptyState, PageHeading, PublicCourseCards } from "./PortalShared";
+import { DetailCard, EmptyState, GroupCards, PageHeading, PublicCourseCards } from "./PortalShared";
 
 export function ResourcePage({
   role,
@@ -76,6 +76,26 @@ export function ResourcePage({
           description="Escolha um curso para consultar seus TCCs públicos."
         />
         <PublicCourseCards courses={ownRows} data={data} />
+      </>
+    );
+  }
+
+  if (role === "professor" && collection === "grupos") {
+    return (
+      <>
+        <PageHeading
+          eyebrow="ACOMPANHAMENTO"
+          title="Meus grupos"
+          description="Crie grupos e acompanhe o TCC e as conversas dentro de cada espaço."
+          action={
+            canAdd ? (
+              <button className="button button-primary" onClick={onCreate}>
+                <Plus size={17} /> Novo grupo
+              </button>
+            ) : undefined
+          }
+        />
+        <GroupCards data={data} groups={ownRows} />
       </>
     );
   }

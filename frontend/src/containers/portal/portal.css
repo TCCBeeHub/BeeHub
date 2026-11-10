@@ -1369,6 +1369,107 @@
   border-top: 1px solid #f0edf2;
 }
 
+.group-workspace-members {
+  margin-bottom: 18px;
+}
+
+.group-workspace-members .panel-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.group-member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-member-list li {
+  display: flex;
+  min-width: 180px;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.group-member-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--purple);
+  background: var(--purple-soft);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.group-member-list li > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.group-member-list strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-member-list small,
+.group-workspace-empty {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.group-workspace-tabs {
+  display: flex;
+  gap: 7px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.group-workspace-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 13px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.group-workspace-tab:hover,
+.group-workspace-tab.is-active {
+  color: var(--purple);
+}
+
+.group-workspace-tab.is-active {
+  border-bottom-color: var(--purple);
+}
+
+.group-workspace-tab:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+}
+
+.group-workspace-panel > .chat-layout {
+  margin-top: 0;
+}
+
 .chat-stage-note {
   display: flex;
   align-items: center;
