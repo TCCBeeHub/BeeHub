@@ -6,6 +6,7 @@ import java.util.List;
 
 public record GrupoResponseDTO(
     Long idGrupo,
+    Long idOrientacao,
     String nomeGrupo,
     String linkFoto,
     String nomeOrientador,

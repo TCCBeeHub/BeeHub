@@ -7,5 +7,6 @@ public record TccResumoDTO(
         String nomeGrupo,
         String tema,
         String descricao,
-        StatusTcc status
+        StatusTcc status,
+        String feedbackOrientador
 ) {}

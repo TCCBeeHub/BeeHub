@@ -4,6 +4,7 @@ import com.beehub.dto.comum.GrupoResumoDTO;
 import com.beehub.dto.request.GrupoRequestDTO;
 import com.beehub.dto.response.GrupoResponseDTO;
 import com.beehub.dto.update.GrupoRequestAtualizarDTO;
+import com.beehub.dto.update.GrupoProfessorAtualizarDTO;
 import com.beehub.security.SessaoValidator;
 import com.beehub.service.GrupoService;
 import jakarta.servlet.http.HttpSession;
@@ -45,6 +46,15 @@ public class GrupoController {
                                            HttpSession session){
         Long rmAluno = sessaoValidator.validarAlunoLogado(session);
         return grupoService.atualizarGrupo(dto, idGrupo, rmAluno);
+    }
+
+    @PutMapping("/{idGrupo}/professor")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void atualizarGrupoProfessor(@PathVariable Long idGrupo,
+                                        @Valid @RequestBody GrupoProfessorAtualizarDTO dto,
+                                        HttpSession session) {
+        Long rmProfessor = sessaoValidator.validarProfessorLogado(session);
+        grupoService.atualizarGrupoProfessor(dto, idGrupo, rmProfessor);
     }
 
 

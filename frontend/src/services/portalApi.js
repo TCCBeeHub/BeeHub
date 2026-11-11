@@ -144,7 +144,7 @@ function findCursoId(orientation, cursos, etecs) {
 function adaptOrientations(list, { rmProfessor, cursos, etecs }) {
   return list.map((item, index) => ({
     ...item,
-    // Sem idOrientacao na API, usa a posição só para identificar a linha na tela.
+    // O índice só é um fallback para versões antigas da API sem idOrientacao.
     idOrientacao: item.idOrientacao ?? index + 1,
     idCurso: findCursoId(item, cursos, etecs),
     rmProfessor: item.rmProfessor ?? rmProfessor,
@@ -244,11 +244,10 @@ async function loadProfessorData({ base, user, signal }) {
     throw new Error("Não foi possível identificar o professor logado.");
   }
 
-  const [profile, orientationList, groupList, tccList] = await Promise.all([
+  const [profile, orientationList, groupList] = await Promise.all([
     apiRequest(`/professor/${enc(rm)}`, { signal }),
     getList(`/orientacao/professor/${enc(rm)}`, signal),
     getList(`/grupo/professor/${enc(rm)}`, signal),
-    getList("/tcc", signal),
   ]);
 
   const orientacoes = adaptOrientations(orientationList, {
@@ -268,13 +267,16 @@ async function loadProfessorData({ base, user, signal }) {
   groupList.forEach((grupo, index) => {
     const detalhe = detalhes[index];
     const orientacao =
-      orientacoes.length === 1
+      orientacoes.find((item) =>
+        sameId(item.idOrientacao, grupo.idOrientacao),
+      ) ||
+      (orientacoes.length === 1
         ? orientacoes[0]
         : orientacoes.find(
             (item) =>
               item.nomeCurso === detalhe.nomeCurso &&
               item.nomeEtec === detalhe.nomeEtec,
-          );
+          ));
 
     grupos.push({
       ...grupo,
@@ -290,32 +292,34 @@ async function loadProfessorData({ base, user, signal }) {
     }
   });
 
-  // Só dá para listar os TCCs já publicados dos grupos do professor: falta no
-  // backend uma rota que liste os demais (entregues/em andamento).
-  const nomesDosGrupos = new Set(grupos.map((grupo) => grupo.nomeGrupo));
-  const tccs = attachGroupId(
-    tccList
-      .filter(
-        (tcc) =>
-          nomesDosGrupos.has(tcc.nomeGrupo) &&
-          (tcc.nomeProfessor == null || tcc.nomeProfessor === profile?.nome),
-      )
-      .map((tcc) => fromTcc(tcc, "PUBLICADO")),
-    grupos,
+  const tccs = (
+    await Promise.all(
+      grupos.map(async (grupo) => {
+        const tcc = await getOptional(
+          `/tcc/professor/grupo/${enc(grupo.idGrupo)}`,
+          signal,
+        );
+        return tcc ? { ...fromTcc(tcc), idGrupo: grupo.idGrupo } : null;
+      }),
+    )
+  ).filter(Boolean);
+
+  const idCursoOrientado = new Set(
+    orientacoes.map((item) => String(item.idCurso)),
   );
 
   return finalize({
     ...base,
     cursos: base.cursos.filter((curso) =>
-      orientacoes.some((item) => sameId(item.idCurso, curso.idCurso)),
+      idCursoOrientado.has(String(curso.idCurso)),
     ),
     professores: [
       {
         rmProfessor: String(rm),
         nome: profile?.nome,
-        linkFoto: profile?.linkFoto ?? user.linkFoto,
-        email: user.email,
-        descricao: user.descricao,
+        linkFoto: profile?.linkFoto ?? profile?.urlFoto ?? user.linkFoto,
+        email: profile?.email ?? user.email,
+        descricao: profile?.descricao ?? user.descricao,
       },
     ],
     alunos,
@@ -440,6 +444,53 @@ export function updateEntity(collection, key, record) {
     `${path}/${encodeURIComponent(String(key))}`,
     { method: "PUT", body: record },
   );
+}
+
+export function updateProfessorGroup(idGrupo, record) {
+  return apiRequest(`/grupo/${enc(idGrupo)}/professor`, {
+    method: "PUT",
+    body: {
+      nomeGrupo: record.nomeGrupo,
+      linkFoto: record.linkFoto,
+      capacidadeMaxima: record.capacidadeMaxima,
+      ano: record.ano,
+    },
+  });
+}
+
+export function getProfessorGroupTcc(idGrupo, signal) {
+  return getOptional(`/tcc/professor/grupo/${enc(idGrupo)}`, signal);
+}
+
+export function updateProfessorGroupTcc(idGrupo, record) {
+  return apiRequest(`/tcc/professor/grupo/${enc(idGrupo)}`, {
+    method: "PUT",
+    body: {
+      linkArtigo: record.linkArtigo,
+      linkSite: record.linkSite,
+      linkSlide: record.linkSlide,
+      feedbackOrientador: record.feedbackOrientador,
+    },
+  });
+}
+
+export function transitionTcc(codTcc, action) {
+  const allowedActions = new Set(["aprovar", "reprovar", "publicar"]);
+  if (!allowedActions.has(action)) {
+    throw new Error("Ação de TCC inválida.");
+  }
+  return apiRequest(`/tcc/${enc(codTcc)}/${action}`, { method: "PUT" });
+}
+
+export function getGroupMessages(idGrupo, signal) {
+  return getList(`/conversa/grupo/${enc(idGrupo)}`, signal);
+}
+
+export function sendGroupMessage(idGrupo, conteudo) {
+  return apiRequest(`/conversa/grupo/${enc(idGrupo)}`, {
+    method: "POST",
+    body: { conteudo },
+  });
 }
 
 export function deleteEntity(collection, key) {

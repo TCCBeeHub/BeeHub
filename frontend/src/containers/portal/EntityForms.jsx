@@ -30,6 +30,8 @@ export function EntityForm({
     ? editableFields(role, collection, config)
     : role === "administrador"
       ? [...editableFields(role, collection, config), accountPasswordField]
+      : role === "professor" && collection === "grupos"
+        ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
       : collection === "tccs"
         ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
         : [];
@@ -78,7 +80,12 @@ export function EntityForm({
       return availableGroups.map((item) => [item.idGrupo, item.nomeGrupo]);
     }
     if (field === "idOrientacao") {
-      return data.orientacoes.map((item) => [
+      const orientations = role === "professor"
+        ? data.orientacoes.filter(
+            (item) => String(item.rmProfessor) === String(user?.rmProfessor),
+          )
+        : data.orientacoes;
+      return orientations.map((item) => [
         item.idOrientacao,
         `RM ${item.rmProfessor} · Curso ${item.idCurso} · Turma ${item.turma}`,
       ]);
@@ -157,7 +164,7 @@ export function EntityForm({
                       value={value}
                       disabled={isDisabled}
                       required={!["linkFoto", "linkSlide", "linkArtigo", "linkSite", "descricao"].includes(field)}
-                      min={type === "number" ? "0" : undefined}
+                      min={field === "capacidadeMaxima" ? "1" : type === "number" ? "0" : undefined}
                       step={type === "number" ? "1" : undefined}
                       onChange={(event) =>
                         onChange(

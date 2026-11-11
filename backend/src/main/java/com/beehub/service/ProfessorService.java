@@ -55,7 +55,9 @@ public class ProfessorService {
                 salvarProfessor.getRmProfessor(),
                 salvarProfessor.getNome(),
                 List.of(),
-                salvarProfessor.getLinkFoto()
+                salvarProfessor.getLinkFoto(),
+                salvarProfessor.getEmail(),
+                salvarProfessor.getDescricao()
         );
     }
 
@@ -159,6 +161,9 @@ public class ProfessorService {
 
         List<OrientacaoResponseDTO> dtos = orientacoes.stream()
                 .map(o -> new OrientacaoResponseDTO(
+                        o.getIdOrientacao(),
+                        o.getCurso().getIdCurso(),
+                        o.getProfessor().getRmProfessor(),
                         o.getCurso().getNome(),
                         o.getCurso().getEtec().getNome(),
                         o.getTurma()
@@ -169,7 +174,9 @@ public class ProfessorService {
                 professor.getRmProfessor(),
                 professor.getNome(),
                 dtos,
-                professor.getLinkFoto()
+                professor.getLinkFoto(),
+                professor.getEmail(),
+                professor.getDescricao()
         );
     }
 

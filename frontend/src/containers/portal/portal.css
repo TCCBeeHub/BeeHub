@@ -1319,6 +1319,171 @@
   min-height: 220px;
 }
 
+.group-workspace-card {
+  min-width: 0;
+  margin-bottom: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 5px 16px rgba(42, 31, 56, 0.035);
+}
+
+.group-workspace-actions,
+.group-workspace-section-heading,
+.group-workspace-heading,
+.group-tcc-actions,
+.group-tcc-detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-workspace-actions {
+  flex-wrap: wrap;
+}
+
+.group-workspace-heading {
+  margin-bottom: 8px;
+}
+
+.group-workspace-heading h2,
+.group-workspace-section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.group-workspace-section-heading {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.group-workspace-card .detail-grid {
+  margin-top: 8px;
+}
+
+.group-member-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-member-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.group-member-list img,
+.group-member-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--purple);
+  background: var(--purple-soft);
+  object-fit: cover;
+}
+
+.group-member-list li > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.group-member-list strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10px;
+  text-overflow: ellipsis;
+}
+
+.group-member-list small,
+.group-tcc-detail small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.group-tcc-detail {
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--soft);
+}
+
+.group-tcc-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--purple);
+  background: var(--purple-soft);
+}
+
+.group-tcc-detail h3 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.group-tcc-description,
+.group-workspace-empty {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.group-tcc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.group-tcc-actions {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.group-tcc-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.group-tcc-form .form-field textarea,
+.group-tcc-form .form-field input {
+  width: 100%;
+}
+
+.group-workspace-card > .chat-layout {
+  min-height: 360px;
+  box-shadow: none;
+}
+
+.group-workspace-card > .chat-stage-note {
+  margin-top: 14px;
+}
+
 .group-card-top {
   display: flex;
   align-items: center;
@@ -1436,6 +1601,9 @@
 }
 
 .chat-contacts-heading strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
 }
 
@@ -1511,6 +1679,55 @@
   color: var(--muted);
   font-size: 10px;
   line-height: 1.6;
+}
+
+.chat-composer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.chat-composer input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  font: inherit;
+  font-size: 10px;
+}
+
+.chat-composer button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--purple);
+}
+
+.chat-composer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.chat-character-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.chat-error {
+  margin: 0 11px 8px;
 }
 
 .chat-window {
@@ -2294,9 +2511,11 @@
 .bee-app[data-theme="dark"] .admin-record-card,
 .bee-app[data-theme="dark"] .student-profile-card,
 .bee-app[data-theme="dark"] .group-card,
+.bee-app[data-theme="dark"] .group-workspace-card,
 .bee-app[data-theme="dark"] .chat-layout,
 .bee-app[data-theme="dark"] .chat-messages,
 .bee-app[data-theme="dark"] .chat-composer-disabled,
+.bee-app[data-theme="dark"] .chat-composer,
 .bee-app[data-theme="dark"] .entity-modal {
   background-color: var(--paper);
 }
@@ -2340,6 +2559,10 @@
 .bee-app[data-theme="dark"] .student-profile-header h2,
 .bee-app[data-theme="dark"] .group-card h3,
 .bee-app[data-theme="dark"] .group-tcc-preview strong,
+.bee-app[data-theme="dark"] .group-workspace-heading h2,
+.bee-app[data-theme="dark"] .group-workspace-section-heading h2,
+.bee-app[data-theme="dark"] .group-member-list strong,
+.bee-app[data-theme="dark"] .group-tcc-detail h3,
 .bee-app[data-theme="dark"] .modal-heading h2,
 .bee-app[data-theme="dark"] .form-field > span,
 .bee-app[data-theme="dark"] .message-bubble p {
@@ -2382,9 +2605,12 @@
 .bee-app[data-theme="dark"] .milestone,
 .bee-app[data-theme="dark"] .empty-state,
 .bee-app[data-theme="dark"] .group-tcc-preview,
+.bee-app[data-theme="dark"] .group-tcc-detail,
+.bee-app[data-theme="dark"] .group-member-list li,
 .bee-app[data-theme="dark"] .chat-contacts,
 .bee-app[data-theme="dark"] .message-bubble,
 .bee-app[data-theme="dark"] .chat-composer-disabled input,
+.bee-app[data-theme="dark"] .chat-composer input,
 .bee-app[data-theme="dark"] .form-field input,
 .bee-app[data-theme="dark"] .form-field select,
 .bee-app[data-theme="dark"] .form-field textarea,

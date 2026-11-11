@@ -8,5 +8,7 @@ public record ProfessorResumoDTO(
         Long rmProfessor,
         String nome,
         List<OrientacaoResponseDTO> orientacoes,
-        String linkFoto
+        String linkFoto,
+        String email,
+        String descricao
 ) {}

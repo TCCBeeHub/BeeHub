@@ -40,6 +40,9 @@ public class Grupo {
     @OneToMany(mappedBy = "grupo")
     private List<Aluno> alunos;
 
+    @OneToMany(mappedBy = "grupo", cascade = CascadeType.REMOVE)
+    private List<MensagemGrupo> mensagens;
+
     @OneToOne(mappedBy = "grupo")
     private Tcc tcc;
 

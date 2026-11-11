@@ -2,16 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { LogOut, Search, X } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import logo from "/imagens/BeeHubHorizontal.jpeg";
-import { createEntity, deleteEntity, getPortalData, updateEntity } from "../../services/portalApi";
+import { createEntity, deleteEntity, getPortalData, updateEntity, updateProfessorGroup, updateProfessorGroupTcc } from "../../services/portalApi";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { ACCOUNT_PASSWORD_FIELDS, buildDeleteError, COLLECTION_CONFIG, filterCollection, getCollectionForSection, getPageTitle, getPathRecordId, getSectionFromPath, getTccCourse, matchesId, NAV_ITEMS, ROLE_LABELS } from "./portal-data";
-import { canEdit, getBlankRecord, getNextTccCode, validateRecord } from "./portal-records";
+import { canDelete, canEdit, canCreate, getBlankRecord, getNextTccCode, validateRecord } from "./portal-records";
 import { Dashboard } from "./Dashboard";
 import { ConversationPage } from "./ConversationPage";
 import { EntityForm, DetailDialog } from "./EntityForms";
+import { GroupWorkspacePage } from "./GroupWorkspacePage";
 import { ResourcePage } from "./ResourcePage";
-import { EmptyState, PublicCourseTccPage, StudentProfilePage, ThemeToggle } from "./PortalShared";
+import { EmptyState, GroupCards, PageHeading, PublicCourseTccPage, ThemeToggle, UserProfilePage } from "./PortalShared";
 import "./portal.css";
 
 export { LoginPage } from "./LoginPage";
@@ -30,7 +31,6 @@ export function PortalApp() {
   const [search, setSearch] = useState("");
   const [dialog, setDialog] = useState(null);
   const [formError, setFormError] = useState("");
-  const [selectedConversation, setSelectedConversation] = useState("");
   const refreshPortal = useCallback(async (signal) => {
     setLoading(true);
     setLoadError("");
@@ -65,6 +65,9 @@ export function PortalApp() {
     ? NAV_ITEMS.aluno.filter((item) => !["tccs", "conversas"].includes(item.id))
     : NAV_ITEMS[role] || [];
   const isDetails = section === "tcc-detail";
+  const isGroupDetails = role === "professor" &&
+    section === "grupos" &&
+    location.pathname.split("/").filter(Boolean).length === 2;
   const collection = getCollectionForSection(section);
   const allowedSections = new Set(menu.map((item) => item.id));
 
@@ -76,7 +79,10 @@ export function PortalApp() {
   if (section === "perfil" && role === "visitante") {
     return <Navigate to="/" replace />;
   }
-  if (section === "conversas" && !["aluno", "professor"].includes(role)) {
+  if (
+    section === "conversas" &&
+    (!["aluno", "professor"].includes(role) || !allowedSections.has("conversas"))
+  ) {
     return <Navigate to="/" replace />;
   }
   if (
@@ -151,17 +157,27 @@ export function PortalApp() {
   const saveRecord = async (event) => {
     event.preventDefault();
     const { collection: targetCollection, record, editing, editingKey } = dialog;
-    const message = validateRecord(targetCollection, record, data, editingKey);
+    const message = validateRecord(targetCollection, record, data, editingKey, role, user);
     if (message) {
       setFormError(message);
       return;
     }
     try {
       if (editing) {
-        await updateEntity(targetCollection, editingKey, record);
+        if (role === "professor" && targetCollection === "grupos") {
+          await updateProfessorGroup(editingKey, record);
+        } else if (role === "professor" && targetCollection === "tccs") {
+          await updateProfessorGroupTcc(record.idGrupo, record);
+        } else {
+          await updateEntity(targetCollection, editingKey, record);
+        }
       } else {
         const payload = { ...record };
         if (targetCollection === "cursos") delete payload.idCurso;
+        if (targetCollection === "grupos") {
+          delete payload.idGrupo;
+          delete payload.linkFoto;
+        }
         if (targetCollection === "alunos") {
           for (const field of ["email", "descricao", "linkFoto", "idGrupo"]) {
             delete payload[field];
@@ -222,23 +238,12 @@ export function PortalApp() {
   } else if (section === "perfil") {
     const profileCollection = role === "aluno" ? "alunos" : "professores";
     const profileRows = filterCollection(role, user, data, profileCollection);
-    page = role === "aluno" ? (
-      <StudentProfilePage
+    page = (
+      <UserProfilePage
+        role={role}
         record={profileRows[0]}
         data={data}
         onEdit={() => profileRows[0] && openEditor(profileCollection, profileRows[0])}
-      />
-    ) : (
-      <ResourcePage
-        role={role}
-        user={user}
-        data={data}
-        collection={profileCollection}
-        rows={profileRows}
-        onEdit={(record) => openEditor(profileCollection, record)}
-        onCreate={() => openEditor(profileCollection, null)}
-        onDetail={(record) => setDialog({ type: "detail", collection: profileCollection, record })}
-        search={search}
       />
     );
   } else if (section === "conversas") {
@@ -247,8 +252,6 @@ export function PortalApp() {
         role={role}
         user={user}
         data={data}
-        selected={selectedConversation}
-        onSelect={setSelectedConversation}
       />
     );
   } else if (section === "curso-tccs") {
@@ -266,6 +269,43 @@ export function PortalApp() {
       />
     ) : (
       <EmptyState title="Curso não encontrado" text="O curso selecionado não está disponível." />
+    );
+  } else if (role === "professor" && section === "grupos") {
+    const groups = filterCollection(role, user, data, "grupos");
+    const group = isGroupDetails
+      ? groups.find((item) => matchesId(item.idGrupo, getPathRecordId(location.pathname)))
+      : null;
+    page = group ? (
+      <GroupWorkspacePage
+        group={group}
+        data={data}
+        user={user}
+        onEditGroup={() => openEditor("grupos", group)}
+        onDeleteGroup={
+          canDelete(role, "grupos", group, user, data)
+            ? () => deleteRecord("grupos", group)
+            : undefined
+        }
+        onRefresh={() => refreshPortal()}
+      />
+    ) : isGroupDetails ? (
+      <EmptyState title="Grupo não encontrado" text="O grupo não existe ou não está vinculado às suas orientações." />
+    ) : (
+      <>
+        <PageHeading
+          eyebrow="ÁREA DO PROFESSOR"
+          title="Meus grupos"
+          description="Crie grupos nas suas orientações e acompanhe alunos, TCCs e conversas em cada espaço."
+          action={
+            canCreate(role, "grupos", data, user) ? (
+              <button className="button button-primary" onClick={() => openEditor("grupos", null)}>
+                Novo grupo
+              </button>
+            ) : undefined
+          }
+        />
+        <GroupCards data={data} groups={groups} />
+      </>
     );
   } else if (isDetails) {
     const targetCollection = "tccs";

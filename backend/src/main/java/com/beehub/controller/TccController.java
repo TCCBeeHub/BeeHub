@@ -5,6 +5,7 @@ import com.beehub.dto.request.TccRequestDTO;
 import com.beehub.dto.response.TccPublicadoResponseDTO;
 import com.beehub.dto.response.TccResponseDTO;
 import com.beehub.dto.response.TccStatusResponseDTO;
+import com.beehub.dto.response.TccOrientacaoDTO;
 import com.beehub.dto.update.TccRequestAtualizarDTO;
 import com.beehub.security.SessaoValidator;
 import com.beehub.service.TccService;
@@ -47,6 +48,25 @@ public class TccController {
                                          HttpSession session){
         Long rmAluno = sessaoValidator.validarAlunoLogado(session);
         return tccService.listarTccDoGrupo(idGrupo, rmAluno);
+    }
+
+    @GetMapping("/professor/grupo/{idGrupo}")
+    @ResponseStatus(HttpStatus.OK)
+    public TccOrientacaoDTO listarTccDoGrupoParaProfessor(
+            @PathVariable Long idGrupo,
+            HttpSession session) {
+        Long rmProfessor = sessaoValidator.validarProfessorLogado(session);
+        return tccService.listarTccDoGrupoParaProfessor(idGrupo, rmProfessor);
+    }
+
+    @PutMapping("/professor/grupo/{idGrupo}")
+    @ResponseStatus(HttpStatus.OK)
+    public TccOrientacaoDTO atualizarTccDoGrupoParaProfessor(
+            @PathVariable Long idGrupo,
+            @Valid @RequestBody TccRequestAtualizarDTO dto,
+            HttpSession session) {
+        Long rmProfessor = sessaoValidator.validarProfessorLogado(session);
+        return tccService.atualizarTccDoGrupoParaProfessor(dto, idGrupo, rmProfessor);
     }
 
     @GetMapping("/publico/{codTcc}")

@@ -22,10 +22,8 @@ export const NAV_ITEMS = {
   ],
   professor: [
     { id: "home", label: "Visão geral", path: "/", icon: LayoutDashboard },
-    { id: "grupos", label: "Grupos atribuídos", path: "/grupos", icon: UsersRound },
+    { id: "grupos", label: "Meus grupos", path: "/grupos", icon: UsersRound },
     { id: "orientacoes", label: "Orientações", path: "/orientacoes", icon: ClipboardList },
-    { id: "tccs", label: "TCCs orientados", path: "/tccs", icon: FileText },
-    { id: "conversas", label: "Conversas", path: "/conversas", icon: MessageCircle },
     { id: "perfil", label: "Meu perfil", path: "/perfil", icon: UserRound },
   ],
   administrador: [
@@ -95,7 +93,7 @@ export const COLLECTION_CONFIG = {
     singular: "TCC",
     key: "codTCC",
     columns: ["tema", "status", "idGrupo", "dataCriacao"],
-    fields: ["codTCC", "tema", "linkSlide", "linkArtigo", "status", "idGrupo", "descricao", "linkSite", "dataCriacao"],
+    fields: ["codTCC", "tema", "linkSlide", "linkArtigo", "status", "idGrupo", "descricao", "feedbackOrientador", "linkSite", "dataCriacao"],
   },
 };
 
@@ -115,6 +113,7 @@ export const FIELD_LABELS = {
   email: "E-mail",
   linkFoto: "Link da foto",
   descricao: "Descrição",
+  feedbackOrientador: "Orientação do professor",
   turma: "Turma",
   idGrupo: "Grupo",
   idOrientacao: "Orientação",
@@ -154,7 +153,7 @@ export const EDITABLE_FIELDS = {
     professores: ["email", "linkFoto", "descricao"],
     grupos: ["nomeGrupo", "linkFoto", "ano", "capacidadeMaxima"],
     orientacoes: ["idCurso", "turma"],
-    tccs: ["tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite"],
+    tccs: ["linkSlide", "linkArtigo", "feedbackOrientador", "linkSite"],
   },
 };
 

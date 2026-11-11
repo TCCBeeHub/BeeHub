@@ -4,6 +4,7 @@ import com.beehub.dto.comum.*;
 import com.beehub.dto.request.GrupoRequestDTO;
 import com.beehub.dto.response.GrupoResponseDTO;
 import com.beehub.dto.update.GrupoRequestAtualizarDTO;
+import com.beehub.dto.update.GrupoProfessorAtualizarDTO;
 import com.beehub.entity.Aluno;
 import com.beehub.entity.Grupo;
 import com.beehub.entity.Orientacao;
@@ -71,6 +72,7 @@ public class GrupoService {
 
         return new GrupoResumoDTO(
           salvarGrupo.getIdGrupo(),
+          salvarGrupo.getOrientacao().getIdOrientacao(),
           salvarGrupo.getLinkFoto(),
           salvarGrupo.getNomeGrupo(),
           salvarGrupo.getOrientacao().getProfessor().getNome(),
@@ -117,6 +119,7 @@ public class GrupoService {
 
         return new GrupoResponseDTO(
                 grupoAtualizado.getIdGrupo(),
+                grupoAtualizado.getOrientacao().getIdOrientacao(),
                 grupoAtualizado.getNomeGrupo(),
                 grupoAtualizado.getLinkFoto(),
                 grupoAtualizado.getOrientacao().getProfessor().getNome(),
@@ -191,6 +194,7 @@ public class GrupoService {
 
         return new GrupoResponseDTO(
                 listarGrupo.getIdGrupo(),
+                listarGrupo.getOrientacao().getIdOrientacao(),
                 listarGrupo.getNomeGrupo(),
                 listarGrupo.getLinkFoto(),
                 listarGrupo.getOrientacao().getProfessor().getNome(),
@@ -219,6 +223,7 @@ public class GrupoService {
         return grupos.stream()
                 .map(g -> new GrupoResumoDTO(
                         g.getIdGrupo(),
+                        g.getOrientacao().getIdOrientacao(),
                         g.getLinkFoto(),
                         g.getNomeGrupo(),
                         g.getOrientacao().getProfessor().getNome(),
@@ -234,12 +239,56 @@ public class GrupoService {
         return grupos.stream()
                 .map(g -> new GrupoResumoDTO(
                         g.getIdGrupo(),
+                        g.getOrientacao().getIdOrientacao(),
                         g.getLinkFoto(),
                         g.getNomeGrupo(),
                         g.getOrientacao().getProfessor().getNome(),
                         g.getAno()
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public void atualizarGrupoProfessor(GrupoProfessorAtualizarDTO dto, Long idGrupo,
+                                        Long rmProfessor) {
+        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
+                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
+
+        validarProfessorGrupo(grupo, rmProfessor);
+
+        if (dto.nomeGrupo() != null && !dto.nomeGrupo().isBlank()) {
+            String nomeNormalizado = dto.nomeGrupo().trim();
+            if (grupoRepository.existsByNomeGrupoIgnoreCaseAndIdGrupoNot(
+                    nomeNormalizado, idGrupo)) {
+                throw new GrupoNomeJaUtilizadoException("Outro grupo já utiliza este nome!");
+            }
+            grupo.setNomeGrupo(nomeNormalizado);
+        }
+
+        if (dto.linkFoto() != null) {
+            grupo.setLinkFoto(
+                    dto.linkFoto().isBlank() ? URL_FOTO_PADRAO : dto.linkFoto().trim()
+            );
+        }
+
+        if (dto.capacidadeMaxima() != null) {
+            if (dto.capacidadeMaxima() < grupo.getAlunos().size()) {
+                throw new QuantidadeAlunosMaximaException(
+                        "A capacidade não pode ser inferior aos alunos vinculados."
+                );
+            }
+            grupo.setCapacidadeMaxima(dto.capacidadeMaxima());
+        }
+
+        if (dto.ano() != null) {
+            if (dto.ano() < LocalDate.now().getYear()
+                    && !Objects.equals(dto.ano(), grupo.getAno())) {
+                throw new AnoInvalidoException();
+            }
+            grupo.setAno(dto.ano());
+        }
+
+        grupoRepository.save(grupo);
     }
 
     @Transactional

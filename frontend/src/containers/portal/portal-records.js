@@ -25,7 +25,7 @@ export function getBlankRecord(collection, data) {
       idOrientacao: "",
       linkFoto: "",
       ano: new Date().getFullYear(),
-      capacidadeMaxima: 5,
+      capacidadeMaxima: 4,
     },
     tccs: {
       codTCC: "",
@@ -55,7 +55,7 @@ export function getNextTccCode(data) {
   return `TCC-${new Date().getFullYear()}-${String(next).padStart(3, "0")}`;
 }
 
-export function validateRecord(collection, record, data, editingKey) {
+export function validateRecord(collection, record, data, editingKey, role, user) {
   const config = COLLECTION_CONFIG[collection];
   const key = config.key;
   const generatedCourseId = collection === "cursos" && !editingKey;
@@ -115,6 +115,17 @@ export function validateRecord(collection, record, data, editingKey) {
   ) {
     return "Selecione uma orientação cadastrada.";
   }
+  if (
+    collection === "grupos" &&
+    role === "professor" &&
+    !data.orientacoes.some(
+      (item) =>
+        item.idOrientacao === Number(record.idOrientacao) &&
+        String(item.rmProfessor) === String(user?.rmProfessor),
+    )
+  ) {
+    return "Selecione uma orientação vinculada ao seu perfil.";
+  }
   if (collection === "alunos") {
     const course = data.cursos.find(
       (item) => item.idCurso === Number(record.idCurso),
@@ -155,6 +166,23 @@ export function validateRecord(collection, record, data, editingKey) {
     }
   }
   if (collection === "grupos") {
+    if (
+      !Number.isInteger(Number(record.capacidadeMaxima)) ||
+      Number(record.capacidadeMaxima) < 1 ||
+      Number(record.capacidadeMaxima) > 4
+    ) {
+      return "A capacidade do grupo deve estar entre 1 e 4 alunos.";
+    }
+    const previousGroup = data.grupos.find(
+      (item) => String(item.idGrupo) === String(record.idGrupo),
+    );
+    if (
+      !Number.isInteger(Number(record.ano)) ||
+      (Number(record.ano) < new Date().getFullYear() &&
+        (!editingKey || Number(previousGroup?.ano) !== Number(record.ano)))
+    ) {
+      return "O ano do grupo não pode ser anterior ao ano atual.";
+    }
     const orientation = data.orientacoes.find(
       (item) => item.idOrientacao === Number(record.idOrientacao),
     );
@@ -179,26 +207,26 @@ export function validateRecord(collection, record, data, editingKey) {
 export function canEdit(role, collection, record, user, data) {
   if (role === "administrador") return true;
   if (role === "aluno") {
-    if (collection === "alunos") return record.rmAluno === user?.rmAluno;
-    if (collection === "grupos") return record.idGrupo === Number(user?.idGrupo);
-    if (collection === "tccs") return record.idGrupo === Number(user?.idGrupo);
+    if (collection === "alunos") return String(record.rmAluno) === String(user?.rmAluno);
+    if (collection === "grupos") return String(record.idGrupo) === String(user?.idGrupo);
+    if (collection === "tccs") return String(record.idGrupo) === String(user?.idGrupo);
     return false;
   }
   if (role === "professor") {
-    if (collection === "professores") return record.rmProfessor === user?.rmProfessor;
-    if (collection === "orientacoes") return record.rmProfessor === user?.rmProfessor;
+    if (collection === "professores") return String(record.rmProfessor) === String(user?.rmProfessor);
+    if (collection === "orientacoes") return String(record.rmProfessor) === String(user?.rmProfessor);
     if (collection === "grupos" || collection === "tccs") {
       const ownedOrientationIds = new Set(
         data.orientacoes
-          .filter((item) => item.rmProfessor === user?.rmProfessor)
-          .map((item) => item.idOrientacao),
+          .filter((item) => String(item.rmProfessor) === String(user?.rmProfessor))
+          .map((item) => String(item.idOrientacao)),
       );
       return collection === "grupos"
-        ? ownedOrientationIds.has(record.idOrientacao)
+        ? ownedOrientationIds.has(String(record.idOrientacao))
         : data.grupos.some(
             (group) =>
-              group.idGrupo === record.idGrupo &&
-              ownedOrientationIds.has(group.idOrientacao),
+              String(group.idGrupo) === String(record.idGrupo) &&
+              ownedOrientationIds.has(String(group.idOrientacao)),
           );
     }
   }
@@ -207,6 +235,14 @@ export function canEdit(role, collection, record, user, data) {
 
 export function canCreate(role, collection, data, user) {
   if (role === "administrador") return true;
+  if (
+    role === "professor" &&
+    collection === "grupos"
+  ) {
+    return data.orientacoes.some(
+      (item) => String(item.rmProfessor) === String(user?.rmProfessor),
+    );
+  }
   if (collection !== "tccs" || !["aluno", "professor"].includes(role)) return false;
   const groupIds =
     role === "aluno"
@@ -216,15 +252,21 @@ export function canCreate(role, collection, data, user) {
             .filter((group) =>
               data.orientacoes.some(
                 (item) =>
-                  item.idOrientacao === group.idOrientacao &&
-                  item.rmProfessor === user?.rmProfessor,
+                          String(item.idOrientacao) === String(group.idOrientacao) &&
+                          String(item.rmProfessor) === String(user?.rmProfessor),
               ),
             )
             .map((group) => group.idGrupo),
         );
   return [...groupIds].some(
-    (idGrupo) => !data.tccs.some((item) => item.idGrupo === idGrupo),
+    (idGrupo) => !data.tccs.some((item) => String(item.idGrupo) === String(idGrupo)),
   );
+}
+
+export function canDelete(role, collection, record, user, data) {
+  if (role === "administrador") return true;
+  if (role !== "professor" || collection !== "grupos") return false;
+  return canEdit(role, collection, record, user, data);
 }
 
 export function editableFields(role, collection, config) {

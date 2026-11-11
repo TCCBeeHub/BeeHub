@@ -52,6 +52,9 @@ public class OrientacaoService {
         Orientacao salvarOrientacao = orientacaoRepository.save(novaOrientacao);
 
         return new OrientacaoResponseDTO(
+                salvarOrientacao.getIdOrientacao(),
+                salvarOrientacao.getCurso().getIdCurso(),
+                salvarOrientacao.getProfessor().getRmProfessor(),
                 salvarOrientacao.getCurso().getNome(),
                 salvarOrientacao.getCurso().getEtec().getNome(),
                 salvarOrientacao.getTurma()
@@ -64,6 +67,9 @@ public class OrientacaoService {
 
         return orientacaos.stream()
                 .map(orientacao -> new OrientacaoResponseDTO(
+                        orientacao.getIdOrientacao(),
+                        orientacao.getCurso().getIdCurso(),
+                        orientacao.getProfessor().getRmProfessor(),
                         orientacao.getCurso().getNome(),
                         orientacao.getCurso().getEtec().getNome(),
                         orientacao.getTurma()
@@ -81,6 +87,9 @@ public class OrientacaoService {
 
         return orientacaos.stream()
                 .map(orientacao -> new OrientacaoResponseDTO(
+                        orientacao.getIdOrientacao(),
+                        orientacao.getCurso().getIdCurso(),
+                        orientacao.getProfessor().getRmProfessor(),
                         orientacao.getCurso().getNome(),
                         orientacao.getCurso().getEtec().getNome(),
                         orientacao.getTurma()

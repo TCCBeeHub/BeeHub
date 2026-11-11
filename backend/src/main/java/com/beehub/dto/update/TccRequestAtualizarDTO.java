@@ -4,5 +4,6 @@ public record TccRequestAtualizarDTO(
     String descricao,
     String linkArtigo,
     String linkSite,
-    String linkSlide
+    String linkSlide,
+    String feedbackOrientador
 ) {}

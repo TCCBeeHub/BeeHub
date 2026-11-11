@@ -1,114 +1,180 @@
-import { useMemo, useState } from "react";
-import { MessageCircle } from "lucide-react";
-import { CHAT_MESSAGES } from "./portal-data";
+import { useEffect, useMemo, useState } from "react";
+import { MessageCircle, Send, UsersRound } from "lucide-react";
+import { getGroupMessages, sendGroupMessage } from "../../services/portalApi";
 import { EmptyState, PageHeading } from "./PortalShared";
 
-export function ConversationPage({ role, user, data, selected, onSelect }) {
-  const [currentSelection, setCurrentSelection] = useState(selected);
-  const contacts = useMemo(() => {
-    if (role === "aluno") {
-      const group = data.grupos.find((item) => item.idGrupo === Number(user?.idGrupo));
-      const orientation = data.orientacoes.find(
-        (item) => item.idOrientacao === group?.idOrientacao,
-      );
-      const professor = data.professores.find(
-        (item) => item.rmProfessor === orientation?.rmProfessor,
-      );
-      return professor
-        ? [{
-            id: professor.rmProfessor,
-            title: `Professor · RM ${professor.rmProfessor}`,
-            subtitle: professor.email,
-            preview: "Orientação do seu grupo",
-          }]
-        : [];
-    }
-    const orientations = data.orientacoes.filter(
-      (item) => item.rmProfessor === user?.rmProfessor,
-    );
-    const groupIds = new Set(
-      data.grupos
-        .filter((item) => orientations.some((orientation) => orientation.idOrientacao === item.idOrientacao))
-        .map((item) => item.idGrupo),
-    );
-    return data.alunos
-      .filter((item) => groupIds.has(item.idGrupo))
+function formatMessageTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export function ConversationPage({ role, user, data, groupId }) {
+  const activeGroupId = groupId ?? (role === "aluno" ? user?.idGrupo : null);
+  const ownRm = role === "aluno" ? user?.rmAluno : user?.rmProfessor;
+  const group = useMemo(
+    () => data.grupos.find((item) => String(item.idGrupo) === String(activeGroupId)),
+    [activeGroupId, data.grupos],
+  );
+  const participants = useMemo(() => {
+    if (!group) return [];
+    const students = data.alunos
+      .filter((student) => String(student.idGrupo) === String(activeGroupId))
       .map((student) => ({
         id: student.rmAluno,
-        title: `Aluno · RM ${student.rmAluno}`,
-        subtitle: student.email,
-        preview: data.grupos.find((item) => item.idGrupo === student.idGrupo)?.nomeGrupo || "Grupo vinculado",
+        name: student.nome || `RM ${student.rmAluno}`,
+        profile: "Aluno",
+        photo: student.linkFoto,
       }));
-  }, [data, role, user]);
-  const activeId = contacts.some((contact) => contact.id === currentSelection)
-    ? currentSelection
-    : contacts[0]?.id;
-  const activeContact = contacts.find((contact) => contact.id === activeId);
-  const messages = CHAT_MESSAGES[role] || [];
+    const professor = data.professores.find(
+      (item) => item.nome === group.nomeOrientador,
+    );
+    return professor
+      ? [
+          {
+            id: professor.rmProfessor,
+            name: professor.nome || `RM ${professor.rmProfessor}`,
+            profile: "Professor orientador",
+            photo: professor.linkFoto,
+          },
+          ...students,
+        ]
+      : students;
+  }, [activeGroupId, data.alunos, data.professores, group]);
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  const selectContact = (id) => {
-    setCurrentSelection(id);
-    onSelect(id);
+  useEffect(() => {
+    if (activeGroupId == null || activeGroupId === "") {
+      setMessages([]);
+      return undefined;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    getGroupMessages(activeGroupId, controller.signal)
+      .then((loadedMessages) => {
+        if (!controller.signal.aborted) setMessages(loadedMessages);
+      })
+      .catch((loadError) => {
+        if (!controller.signal.aborted) {
+          setError(loadError instanceof Error
+            ? loadError.message
+            : "Não foi possível carregar as conversas deste grupo.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [activeGroupId]);
+
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    const content = messageText.trim();
+    if (!content || sending || activeGroupId == null) return;
+    setSending(true);
+    setError("");
+    try {
+      const savedMessage = await sendGroupMessage(activeGroupId, content);
+      setMessages((current) => [...current, savedMessage].slice(-100));
+      setMessageText("");
+    } catch (sendError) {
+      setError(sendError instanceof Error
+        ? sendError.message
+        : "Não foi possível enviar a mensagem.");
+    } finally {
+      setSending(false);
+    }
   };
+
+  if (activeGroupId == null) {
+    return <EmptyState title="Conversa indisponível" text="É necessário estar vinculado a um grupo para acessar as conversas." />;
+  }
 
   return (
     <>
-      <PageHeading
-        eyebrow="ORIENTAÇÃO ENTRE ALUNO E PROFESSOR"
-        title="Conversas"
-        description="A interface de conversas será conectada em uma etapa futura."
-      />
-      <div className="chat-stage-note">
+      {groupId == null && (
+        <PageHeading
+          eyebrow="COMUNICAÇÃO DO GRUPO"
+          title="Conversas"
+          description="Mensagens visíveis somente aos integrantes e ao professor orientador."
+        />
+      )}
+      <div className="chat-stage-note" role="note">
         <span className="chat-stage-icon"><MessageCircle size={19} /></span>
-        <span><strong>Módulo previsto para a próxima etapa</strong><small>As mensagens abaixo são exemplos locais. O chat não envia nem recebe mensagens reais.</small></span>
+        <span>
+          <strong>{group?.nomeGrupo || "Conversa do grupo"}</strong>
+          <small>As mensagens são salvas neste grupo e não aparecem em outras conversas.</small>
+        </span>
       </div>
       <div className="chat-layout">
         <aside className="chat-contacts">
-          <div className="chat-contacts-heading"><strong>Vínculos disponíveis</strong><span>{contacts.length}</span></div>
-          {contacts.length ? contacts.map((contact) => (
-            <button
-              className={`chat-contact ${contact.id === activeId ? "is-selected" : ""}`}
-              key={contact.id}
-              onClick={() => selectContact(contact.id)}
-            >
-              <span className="chat-avatar">{role === "aluno" ? "P" : "A"}</span>
-              <span><strong>{contact.title}</strong><small>{contact.preview}</small></span>
-            </button>
-          )) : <p className="chat-empty">Nenhum vínculo de orientação disponível.</p>}
-          <p className="chat-privacy">A lista respeita os vínculos de grupo e orientação do perfil atual.</p>
+          <div className="chat-contacts-heading">
+            <strong><UsersRound size={14} /> Integrantes</strong>
+            <span>{participants.length}</span>
+          </div>
+          {participants.length ? participants.map((participant) => (
+            <div className="chat-contact" key={participant.id}>
+              {participant.photo
+                ? <img className="chat-avatar" src={participant.photo} alt="" />
+                : <span className="chat-avatar">{participant.profile === "Aluno" ? "A" : "P"}</span>}
+              <span>
+                <strong>{participant.name}</strong>
+                <small>{participant.profile}</small>
+              </span>
+            </div>
+          )) : <p className="chat-empty">Os integrantes deste grupo não foram carregados.</p>}
+          <p className="chat-privacy">Somente os alunos deste grupo e seu professor orientador podem consultar ou enviar mensagens.</p>
         </aside>
-        <section className="chat-window">
-          {activeContact ? (
-            <>
-              <header className="chat-window-header">
-                <span className="chat-avatar">{role === "aluno" ? "P" : "A"}</span>
-                <span><strong>{activeContact.title}</strong><small>{activeContact.subtitle}</small></span>
-                <span className="local-message-tag">EXEMPLO</span>
-              </header>
-              <div className="chat-messages">
-                <div className="chat-date-divider"><span>Conversa de demonstração</span></div>
-                {messages.map((message, index) => {
-                  const mine = role === "aluno"
-                    ? message.sender === "aluno"
-                    : message.sender === "professor";
-                  return (
-                    <div className={`message-row ${mine ? "message-mine" : ""}`} key={`${message.time}-${index}`}>
-                      <div className="message-bubble">
-                        <p>{message.text}</p>
-                        <time>{message.time}</time>
-                      </div>
+        <section className="chat-window" aria-label="Mensagens do grupo">
+          <header className="chat-window-header">
+            <span className="chat-avatar"><UsersRound size={16} /></span>
+            <span><strong>{group?.nomeGrupo || "Grupo"}</strong><small>Conversa em grupo</small></span>
+            <span className="local-message-tag">PRIVADA</span>
+          </header>
+          <div className="chat-messages" aria-live="polite">
+            {loading ? (
+              <p className="chat-empty">Carregando mensagens…</p>
+            ) : messages.length ? (
+              messages.map((message) => {
+                const mine = String(message.rmRemetente) === String(ownRm);
+                return (
+                  <div className={`message-row ${mine ? "message-mine" : ""}`} key={message.idMensagem}>
+                    <div className="message-bubble">
+                      {!mine && <strong>{message.nomeRemetente}</strong>}
+                      <p>{message.conteudo}</p>
+                      <time>{formatMessageTime(message.enviadaEm)}</time>
                     </div>
-                  );
-                })}
-              </div>
-              <div className="chat-composer-disabled">
-                <input disabled placeholder="Envio de mensagens disponível em uma etapa futura" />
-                <button disabled aria-label="Envio indisponível"><MessageCircle size={17} /></button>
-              </div>
-            </>
-          ) : (
-            <EmptyState title="Conversa indisponível" text="É necessário haver uma orientação vinculada para demonstrar o fluxo." />
-          )}
+                  </div>
+                );
+              })
+            ) : (
+              <p className="chat-empty">Ainda não há mensagens. Inicie a conversa do grupo.</p>
+            )}
+          </div>
+          {error && <p className="form-error chat-error" role="alert">{error}</p>}
+          <form className="chat-composer" onSubmit={sendMessage}>
+            <input
+              value={messageText}
+              maxLength={1000}
+              onChange={(event) => setMessageText(event.target.value)}
+              placeholder="Escreva uma mensagem para o grupo"
+              aria-label="Mensagem"
+              disabled={sending}
+            />
+            <span className="chat-character-count">{messageText.length}/1000</span>
+            <button type="submit" disabled={!messageText.trim() || sending} aria-label="Enviar mensagem">
+              <Send size={17} />
+            </button>
+          </form>
         </section>
       </div>
     </>

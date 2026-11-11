@@ -5,6 +5,7 @@ import com.beehub.dto.request.TccRequestDTO;
 import com.beehub.dto.response.TccPublicadoResponseDTO;
 import com.beehub.dto.response.TccResponseDTO;
 import com.beehub.dto.response.TccStatusResponseDTO;
+import com.beehub.dto.response.TccOrientacaoDTO;
 import com.beehub.dto.update.TccRequestAtualizarDTO;
 import com.beehub.entity.Grupo;
 import com.beehub.entity.Tcc;
@@ -67,7 +68,8 @@ public class TccService {
                 salvarTcc.getGrupo().getNomeGrupo(),
                 salvarTcc.getTema(),
                 salvarTcc.getDescricao(),
-                salvarTcc.getStatus()
+                salvarTcc.getStatus(),
+                null
         );
     }
 
@@ -117,6 +119,43 @@ public class TccService {
     }
 
     @Transactional(readOnly = true)
+    public TccOrientacaoDTO listarTccDoGrupoParaProfessor(Long idGrupo, Long rmProfessor) {
+        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
+                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
+        usuarioValidator.validarProfessorGrupo(grupo, rmProfessor);
+
+        Tcc tcc = tccRepository.findByGrupo_IdGrupo(idGrupo)
+                .orElseThrow(() -> new TccNaoEncontradoException("Este grupo ainda não possui TCC."));
+        return new TccOrientacaoDTO(tcc);
+    }
+
+    @Transactional
+    public TccOrientacaoDTO atualizarTccDoGrupoParaProfessor(
+            TccRequestAtualizarDTO dto, Long idGrupo, Long rmProfessor) {
+        Grupo grupo = grupoRepository.findByIdGrupo(idGrupo)
+                .orElseThrow(() -> new GrupoNaoEncontradoException("Grupo não encontrado!"));
+        usuarioValidator.validarProfessorGrupo(grupo, rmProfessor);
+
+        Tcc tcc = tccRepository.findByGrupo_IdGrupo(idGrupo)
+                .orElseThrow(() -> new TccNaoEncontradoException("Este grupo ainda não possui TCC."));
+
+        if (dto.feedbackOrientador() != null) {
+            tcc.setFeedbackOrientador(dto.feedbackOrientador().trim());
+        }
+        if (dto.linkArtigo() != null) {
+            tcc.setLinkArtigo(dto.linkArtigo().trim());
+        }
+        if (dto.linkSite() != null) {
+            tcc.setLinkSite(dto.linkSite().trim());
+        }
+        if (dto.linkSlide() != null) {
+            tcc.setLinkSlide(dto.linkSlide().trim());
+        }
+
+        return new TccOrientacaoDTO(tccRepository.save(tcc));
+    }
+
+    @Transactional(readOnly = true)
     public TccResumoDTO listarTccPublico(Long codTcc){
 
         Tcc tcc = tccRepository.findByCodTcc(codTcc)
@@ -131,7 +170,8 @@ public class TccService {
                 tcc.getGrupo().getNomeGrupo(),
                 tcc.getTema(),
                 tcc.getDescricao(),
-                tcc.getStatus()
+                tcc.getStatus(),
+                null
         );
     }
 
@@ -150,7 +190,8 @@ public class TccService {
                 tcc.getGrupo().getNomeGrupo(),
                 tcc.getTema(),
                 tcc.getDescricao(),
-                tcc.getStatus()
+                tcc.getStatus(),
+                tcc.getFeedbackOrientador()
         );
     }
 
