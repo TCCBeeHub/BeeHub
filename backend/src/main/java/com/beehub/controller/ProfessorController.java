@@ -70,6 +70,13 @@ public class ProfessorController {
         return professorService.listarProfessor(rmProfessor);
     }
 
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public List<UsuarioResumoDTO> listarTodosProfessores(HttpSession session){
+        sessaoValidator.validarAdmin(session);
+        return professorService.listarTodosProfessores();
+    }
+
     @DeleteMapping("/{rmProfessor}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluirProfessor(@PathVariable Long rmProfessor,

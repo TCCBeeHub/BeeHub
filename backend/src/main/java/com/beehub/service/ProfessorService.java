@@ -85,7 +85,7 @@ public class ProfessorService {
         String novoEmail = dto.email();
         String novaSenha = dto.novaSenha();
         String novaDescricao = dto.descricao();
-        String novaFotoPerfil = dto.urlFoto();
+        String novaFotoPerfil = dto.linkFoto();
 
         if(novoEmail != null && !novoEmail.isBlank()){
             novoEmail = novoEmail.trim();
@@ -178,6 +178,19 @@ public class ProfessorService {
                 professor.getEmail(),
                 professor.getDescricao()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResumoDTO> listarTodosProfessores(){
+        List<Professor> professores = professorRepository.findAll();
+
+        return professores.stream()
+                .map(p -> new UsuarioResumoDTO(
+                        p.getRmProfessor(),
+                        p.getNome(),
+                        p.getLinkFoto()
+                ))
+                .toList();
     }
 
     @Transactional

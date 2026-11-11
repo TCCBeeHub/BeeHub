@@ -7,5 +7,5 @@ public record AlunoResumoDTO(
     String nome,
     GrupoOrientacao turma,
     CursoUsuarioResumoDTO curso,
-    String urlFoto
+    String linkFoto
 ) {}

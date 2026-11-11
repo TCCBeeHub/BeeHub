@@ -102,7 +102,7 @@ public class AlunoService {
         String novoEmail = dto.email();
         String novaSenha = dto.novaSenha();
         String novaDescricao = dto.descricao();
-        String novaFoto = dto.urlFoto();
+        String novaFoto = dto.linkFoto();
 
         if (novoEmail != null && !novoEmail.isBlank()) {
             novoEmail = novoEmail.trim();

@@ -137,7 +137,7 @@ export function EntityForm({
                     <select
                       value={value}
                       disabled={isDisabled}
-                      required
+                      required = {!editing}
                       onChange={(event) => {
                         const nextValue = ["idCurso", "idGrupo", "idOrientacao"].includes(field)
                           ? Number(event.target.value)
@@ -163,7 +163,7 @@ export function EntityForm({
                       type={type}
                       value={value}
                       disabled={isDisabled}
-                      required={!["linkFoto", "linkSlide", "linkArtigo", "linkSite", "descricao"].includes(field)}
+                      required={!editing && !["linkFoto", "linkSlide", "linkArtigo", "linkSite", "descricao"].includes(field)}
                       min={field === "capacidadeMaxima" ? "1" : type === "number" ? "0" : undefined}
                       step={type === "number" ? "1" : undefined}
                       onChange={(event) =>

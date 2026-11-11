@@ -9,5 +9,5 @@ public record AlunoResponseDTO(
     String email,
     String descricao,
     String nomeCurso,
-    String urlFoto
+    String linkFoto
 ) {}

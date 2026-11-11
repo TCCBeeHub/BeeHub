@@ -7,5 +7,5 @@ public record ProfessorRequestAtualizarDTO(
         String email,
         String novaSenha,
         String descricao,
-        String urlFoto
+        String linkFoto
 ) {}
