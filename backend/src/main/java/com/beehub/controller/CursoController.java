@@ -59,7 +59,6 @@ public class CursoController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<CursoResponseDTO> listarTodosOsCursos(HttpSession session){
-        sessaoValidator.validarAdmin(session);
         return cursoService.listarTodosOsCursos();
     }
 

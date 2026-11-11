@@ -208,18 +208,21 @@ function finalize(data) {
 /* ------------------------------------------------------------------ */
 
 async function loadAdminData({ base, signal }) {
-  // /orientacao e /grupo (listas gerais) são exclusivas de admin.
-  const [orientationList, groupList, tccList] = await Promise.all([
+  // Busca a lista global de professores e as outras entidades
+  const [orientationList, groupList, tccList, professorList] = await Promise.all([
     getList("/orientacao", signal),
     getList("/grupo", signal),
     getList("/tcc", signal),
+    getList("/professor", signal), // <--- MUDANÇA AQUI: busca todos de uma vez
   ]);
+
   const courseIds = base.cursos.map((curso) => curso.idCurso);
-  const [alunos, professores] = await Promise.all([
-    loadStudents(courseIds, signal),
-    loadProfessors(courseIds, signal),
-  ]);
+  const alunos = await loadStudents(courseIds, signal); // Alunos continuam por curso
+  
   const grupos = normalizeRecords(groupList, "grupos");
+  
+  // Transforma a lista global de professores usando o mesmo padrão dos alunos
+  const professores = professorList.map((item) => fromUsuario(item, "rmProfessor"));
 
   return finalize({
     ...base,
@@ -230,7 +233,6 @@ async function loadAdminData({ base, signal }) {
       etecs: base.etecs,
     }),
     grupos,
-    // GET /tcc só devolve TCCs PUBLICADOS (não existe listagem geral ainda).
     tccs: attachGroupId(
       tccList.map((tcc) => fromTcc(tcc, "PUBLICADO")),
       grupos,

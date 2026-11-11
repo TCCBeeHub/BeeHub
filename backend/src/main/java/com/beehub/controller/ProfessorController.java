@@ -73,7 +73,6 @@ public class ProfessorController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<UsuarioResumoDTO> listarTodosProfessores(HttpSession session){
-        sessaoValidator.validarAdmin(session);
         return professorService.listarTodosProfessores();
     }
 

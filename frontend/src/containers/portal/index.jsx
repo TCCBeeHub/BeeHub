@@ -6,7 +6,7 @@ import { createEntity, deleteEntity, getPortalData, updateEntity, updateProfesso
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { ACCOUNT_PASSWORD_FIELDS, buildDeleteError, COLLECTION_CONFIG, filterCollection, getCollectionForSection, getPageTitle, getPathRecordId, getSectionFromPath, getTccCourse, matchesId, NAV_ITEMS, ROLE_LABELS } from "./portal-data";
-import { canDelete, canEdit, canCreate, getBlankRecord, getNextTccCode, validateRecord } from "./portal-records";
+import { canDelete, canEdit, getBlankRecord, getNextTccCode, validateRecord } from "./portal-records";
 import { Dashboard } from "./Dashboard";
 import { ConversationPage } from "./ConversationPage";
 import { EntityForm, DetailDialog } from "./EntityForms";
@@ -31,6 +31,7 @@ export function PortalApp() {
   const [search, setSearch] = useState("");
   const [dialog, setDialog] = useState(null);
   const [formError, setFormError] = useState("");
+  
   const refreshPortal = useCallback(async (signal) => {
     setLoading(true);
     setLoadError("");
@@ -47,11 +48,13 @@ export function PortalApp() {
       if (!signal?.aborted) setLoading(false);
     }
   }, [role, user]);
+
   useEffect(() => {
     const controller = new AbortController();
     refreshPortal(controller.signal);
     return () => controller.abort();
   }, [refreshPortal]);
+
   const section = getSectionFromPath(location.pathname);
   const ownStudent = role === "aluno"
     ? data.alunos.find((item) => matchesId(item.rmAluno, user?.rmAluno))
@@ -132,9 +135,11 @@ export function PortalApp() {
   const openEditor = (targetCollection, record) => {
     setFormError("");
     const draft = record || { ...getBlankRecord(targetCollection, data) };
+
     if (!record && ACCOUNT_PASSWORD_FIELDS[targetCollection]) {
       draft[ACCOUNT_PASSWORD_FIELDS[targetCollection]] = "";
     }
+
     if (!record && targetCollection === "tccs") {
       draft.codTCC = getNextTccCode(data);
       if (role === "aluno") draft.idGrupo = Number(user?.idGrupo) || "";
@@ -145,6 +150,15 @@ export function PortalApp() {
         if (assignedGroups.length === 1) draft.idGrupo = assignedGroups[0].idGrupo;
       }
     }
+
+    // Professor criando grupo: abre o form preparado para escolher Curso/Turma e Alunos
+    if (!record && targetCollection === "grupos" && role === "professor") {
+      draft.quantidadeAlunos = 0;
+      draft.alunosSelecionados = [];
+      draft.idCurso = "";
+      draft.turma = "";
+    }
+
     setDialog({
       type: "form",
       collection: targetCollection,
@@ -157,11 +171,13 @@ export function PortalApp() {
   const saveRecord = async (event) => {
     event.preventDefault();
     const { collection: targetCollection, record, editing, editingKey } = dialog;
+    
     const message = validateRecord(targetCollection, record, data, editingKey, role, user);
     if (message) {
       setFormError(message);
       return;
     }
+    
     try {
       if (editing) {
         if (role === "professor" && targetCollection === "grupos") {
@@ -174,10 +190,71 @@ export function PortalApp() {
       } else {
         const payload = { ...record };
         if (targetCollection === "cursos") delete payload.idCurso;
+
         if (targetCollection === "grupos") {
           delete payload.idGrupo;
           delete payload.linkFoto;
+
+          if (role === "professor") {
+            const alunosSelecionados = (payload.alunosSelecionados || []).filter((rm) => rm !== "" && rm != null);
+            const cursoId = payload.idCurso;
+            const turma = payload.turma;
+            
+            delete payload.quantidadeAlunos;
+            delete payload.alunosSelecionados;
+            delete payload.idCurso;
+            delete payload.turma;
+
+            if (!cursoId || !turma) {
+              setFormError("Selecione o curso e a turma do grupo.");
+              return;
+            }
+
+            // Verifica se por algum motivo ele já tem orientação nessa turma (segurança extra)
+            let orientacaoExistente = (data.orientacoes || []).find(
+              (o) => matchesId(o.rmProfessor, user?.rmProfessor) && o.turma === turma
+            );
+
+            let idOrientacaoFinal;
+
+            if (orientacaoExistente) {
+              idOrientacaoFinal = orientacaoExistente.idOrientacao;
+            } else {
+              // Cria a orientação nova nos bastidores
+              const novaOrientacao = await createEntity("orientacoes", {
+                rmProfessor: user.rmProfessor,
+                idCurso: cursoId,
+                turma: turma
+              });
+              idOrientacaoFinal = novaOrientacao.idOrientacao;
+            }
+
+            payload.idOrientacao = idOrientacaoFinal;
+
+            // 1. Cria o grupo no backend
+            const grupoCriado = await createEntity(targetCollection, payload);
+            
+            // 2. Atualiza o idGrupo de cada aluno selecionado
+            if (alunosSelecionados.length > 0) {
+              for (const rmAluno of alunosSelecionados) {
+                const alunoOriginal = data.alunos.find((a) => matchesId(a.rmAluno, rmAluno));
+                if (alunoOriginal) {
+                  await updateEntity("alunos", rmAluno, { ...alunoOriginal, idGrupo: grupoCriado.idGrupo });
+                }
+              }
+            }
+
+            closeDialog();
+            setFlash("Grupo criado e alunos vinculados com sucesso!");
+            await refreshPortal();
+            return;
+          } else {
+            // Admin criando grupo: comportamento antigo
+            delete payload.quantidadeAlunos;
+            delete payload.alunosSelecionados;
+          }
         }
+
         if (targetCollection === "alunos") {
           for (const field of ["email", "descricao", "linkFoto", "idGrupo"]) {
             delete payload[field];
@@ -275,6 +352,7 @@ export function PortalApp() {
     const group = isGroupDetails
       ? groups.find((item) => matchesId(item.idGrupo, getPathRecordId(location.pathname)))
       : null;
+
     page = group ? (
       <GroupWorkspacePage
         group={group}
@@ -289,7 +367,10 @@ export function PortalApp() {
         onRefresh={() => refreshPortal()}
       />
     ) : isGroupDetails ? (
-      <EmptyState title="Grupo não encontrado" text="O grupo não existe ou não está vinculado às suas orientações." />
+      <EmptyState
+        title="Grupo não encontrado"
+        text="O grupo não existe ou não está vinculado às suas orientações."
+      />
     ) : (
       <>
         <PageHeading
@@ -297,11 +378,12 @@ export function PortalApp() {
           title="Meus grupos"
           description="Crie grupos nas suas orientações e acompanhe alunos, TCCs e conversas em cada espaço."
           action={
-            canCreate(role, "grupos", data, user) ? (
-              <button className="button button-primary" onClick={() => openEditor("grupos", null)}>
-                Novo grupo
-              </button>
-            ) : undefined
+            <button
+              className="button button-primary"
+              onClick={() => openEditor("grupos", null)}
+            >
+              Novo grupo
+            </button>
           }
         />
         <GroupCards data={data} groups={groups} />

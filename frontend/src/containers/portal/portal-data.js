@@ -116,6 +116,10 @@ export function filterCollection(role, user, data, collection) {
     if (collection === "orientacoes") return rows.filter((item) => matchesId(item.rmProfessor, user.rmProfessor));
     if (collection === "grupos") return rows.filter((item) => [...groupIds].some((id) => matchesId(id, item.idGrupo)));
     if (collection === "tccs") return rows.filter((item) => [...groupIds].some((id) => matchesId(id, item.idGrupo)));
+
+    if (collection === "cursos") return rows;
+    if (collection === "alunos") return rows; 
+
     return [];
   }
   return [];

@@ -23,7 +23,6 @@ export const NAV_ITEMS = {
   professor: [
     { id: "home", label: "Visão geral", path: "/", icon: LayoutDashboard },
     { id: "grupos", label: "Meus grupos", path: "/grupos", icon: UsersRound },
-    { id: "orientacoes", label: "Orientações", path: "/orientacoes", icon: ClipboardList },
     { id: "perfil", label: "Meu perfil", path: "/perfil", icon: UserRound },
   ],
   administrador: [
