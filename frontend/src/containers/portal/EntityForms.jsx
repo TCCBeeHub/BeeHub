@@ -23,7 +23,7 @@ export function EntityForm({
     : role === "administrador"
       ? [...editableFields(role, collection, config), accountPasswordField]
       : isProfessorCreatingGroup
-        ? ["nomeGrupo", "idCurso", "turma", "ano", "capacidadeMaxima"]
+        ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
         : collection === "tccs"
           ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
           : [];
@@ -31,7 +31,7 @@ export function EntityForm({
   const formFields = !editing && role === "administrador" && adminCreateFields[collection]
       ? adminCreateFields[collection]
       : isProfessorCreatingGroup
-        ? ["nomeGrupo", "idCurso", "turma", "ano", "capacidadeMaxima"]
+        ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
         : config.fields;
 
   const fields = [...formFields, accountPasswordField].filter(Boolean).filter(
@@ -58,12 +58,6 @@ export function EntityForm({
   const choicesFor = (field) => {
     if (field === "codEtec") return data.etecs.map((item) => [String(item.codEtec), item.nome]);
 
-    // Para o professor criando grupo: lista todos os cursos
-    if (field === "idCurso" && isProfessorCreatingGroup) {
-      // Se data.cursos estiver vazio, o select fica vazio. É preciso que o getPortalData traga os cursos.
-      return (data.cursos || []).map((item) => [String(item.idCurso || item.id), item.nome]);
-    }
-
     if (field === "idCurso") return (data.cursos || []).map((item) => [String(item.idCurso || item.id), item.nome]);
 
     if (field === "idGrupo") {
@@ -83,7 +77,7 @@ export function EntityForm({
         );
         return orientacoesSemGrupo.map((item) => [
           String(item.idOrientacao),
-          `Curso ${item.idCurso} · Turma ${item.turma} (Orientação #${item.idOrientacao})`
+          `${data.cursos.find((curso) => matchesId(curso.idCurso, item.idCurso))?.nome || `Curso ${item.idCurso}`} · Turma ${item.turma}`
         ]);
       }
       return data.orientacoes.map((item) => [String(item.idOrientacao), `RM ${item.rmProfessor} · Curso ${item.idCurso} · Turma ${item.turma}`]);
@@ -108,21 +102,27 @@ export function EntityForm({
     return [];
   };
 
-  const alunosDisponiveis = isProfessorCreatingGroup && record.idCurso && record.turma
-    ? (data.alunos || []).filter((aluno) => 
-        matchesId(aluno.idCurso, record.idCurso) && 
-        aluno.turma === record.turma &&
+  const orientacaoSelecionada = isProfessorCreatingGroup
+    ? data.orientacoes.find((item) => matchesId(item.idOrientacao, record.idOrientacao))
+    : null;
+  const alunosDisponiveis = orientacaoSelecionada
+    ? (data.alunos || []).filter((aluno) =>
+        matchesId(aluno.idCurso, orientacaoSelecionada.idCurso) &&
+        aluno.turma === orientacaoSelecionada.turma &&
         (aluno.idGrupo == null || aluno.idGrupo === "")
       )
     : [];
 
   const quantidadeAlunos = Math.max(0, Number(record.quantidadeAlunos) || 0);
   const alunosSelecionados = Array.isArray(record.alunosSelecionados) ? record.alunosSelecionados : [];
+  const quantidadeMaximaAlunos = Math.min(
+    Math.max(0, Number(record.capacidadeMaxima) || 0),
+    alunosDisponiveis.length,
+  );
 
   const handleQuantidadeChange = (event) => {
     const bruto = Number(event.target.value) || 0;
-    const limite = Math.max(0, alunosDisponiveis.length);
-    const qtd = Math.min(Math.max(0, bruto), limite);
+    const qtd = Math.min(Math.max(0, bruto), quantidadeMaximaAlunos);
     const proximos = Array.from({ length: qtd }, (_, i) => alunosSelecionados[i] ?? "");
     onChange("quantidadeAlunos", qtd);
     onChange("alunosSelecionados", proximos);
@@ -134,8 +134,23 @@ export function EntityForm({
     onChange("alunosSelecionados", proximos);
   };
 
-  const turmasDisponiveis = choicesFor("turma");
-  const cursosDisponiveis = choicesFor("idCurso");
+  const handleFieldChange = (field, value) => {
+    onChange(field, value);
+
+    if (["idOrientacao", "idCurso", "turma"].includes(field)) {
+      onChange("quantidadeAlunos", 0);
+      onChange("alunosSelecionados", []);
+    } else if (field === "capacidadeMaxima") {
+      const limite = Math.min(
+        Math.max(0, Number(value) || 0),
+        alunosDisponiveis.length,
+      );
+      if (quantidadeAlunos > limite) {
+        onChange("quantidadeAlunos", limite);
+        onChange("alunosSelecionados", alunosSelecionados.slice(0, limite));
+      }
+    }
+  };
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -151,7 +166,7 @@ export function EntityForm({
           {role === "administrador"
             ? "Preencha os atributos do MER."
             : isProfessorCreatingGroup
-              ? "Escolha o curso e a turma. O sistema criará a orientação automaticamente e vinculará os alunos."
+              ? "Escolha uma orientação disponível. Os alunos elegíveis serão filtrados pelo curso e pela turma dessa orientação."
               : "Você pode alterar somente os dados permitidos para o seu perfil e seus vínculos."}
         </p>
         <form onSubmit={onSave}>
@@ -178,12 +193,7 @@ export function EntityForm({
                           ? (event.target.value === "" ? "" : Number(event.target.value)) 
                           : event.target.value;
                         
-                        onChange(field, nextValue);
-                        
-                        if (field === "idOrientacao" || field === "idCurso" || field === "turma") {
-                          onChange("quantidadeAlunos", 0);
-                          onChange("alunosSelecionados", []);
-                        }
+                        handleFieldChange(field, nextValue);
                       }}
                     >
                       <option value="">Selecione</option>
@@ -201,27 +211,28 @@ export function EntityForm({
                       required={!editing && !["linkFoto", "linkSlide", "linkArtigo", "linkSite", "descricao"].includes(field)}
                       min={field === "capacidadeMaxima" ? "1" : type === "number" ? "0" : undefined}
                       step={type === "number" ? "1" : undefined}
-                      onChange={(event) => onChange(field, type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value)}
+                      onChange={(event) =>
+                        handleFieldChange(
+                          field,
+                          type === "number" && event.target.value !== ""
+                            ? Number(event.target.value)
+                            : event.target.value,
+                        )
+                      }
                     />
                   )}
                 </label>
               );
             })}
 
-            {isProfessorCreatingGroup && cursosDisponiveis.length === 0 && (
-              <div className="form-error" role="status" style={{ gridColumn: "1 / -1", background: "rgba(255, 100, 100, 0.1)", color: "#ff6464", padding: "10px", borderRadius: "5px" }}>
-                Nenhum curso encontrado. Verifique se o backend está enviando a lista de cursos para o professor.
-              </div>
-            )}
-
-            {isProfessorCreatingGroup && record.idCurso && record.turma && (
+            {isProfessorCreatingGroup && orientacaoSelecionada && (
               <>
                 <label className="form-field">
-                  <span>Quantidade de alunos (máx: {alunosDisponiveis.length})</span>
+                  <span>Quantidade de alunos (máx: {quantidadeMaximaAlunos})</span>
                   <input
                     type="number"
                     min={0}
-                    max={alunosDisponiveis.length}
+                    max={quantidadeMaximaAlunos}
                     step={1}
                     value={quantidadeAlunos}
                     onChange={handleQuantidadeChange}
@@ -255,9 +266,9 @@ export function EntityForm({
               </>
             )}
 
-            {isProfessorCreatingGroup && turmasDisponiveis.length === 0 && (
+            {isProfessorCreatingGroup && choicesFor("idOrientacao").length === 0 && (
               <div className="form-error" role="status" style={{ gridColumn: "1 / -1", background: "rgba(255, 100, 100, 0.1)", color: "#ff6464", padding: "10px", borderRadius: "5px" }}>
-                Você já está orientando todas as turmas disponíveis neste momento. Finalize ou exclua uma orientação/grupo antes de criar outro.
+                Não há orientações disponíveis para criar um grupo. Solicite a criação de uma orientação à coordenação ou finalize um grupo existente.
               </div>
             )}
           </div>

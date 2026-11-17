@@ -1,14 +1,10 @@
-// const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
-//   /\/+$/,
-//   "",
-// );
-
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-const API_BASE_URL ="https://beehub.onrender.com"
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
+  /\/+$/,
+  "",
+);
 
 const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
-const dados = await apiRequest("/etec");
-console.log("Dados recebidos:", dados);
+
 export class ApiError extends Error {
   constructor(message, status) {
     super(message);
@@ -33,7 +29,7 @@ export async function apiRequest(
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });
-  } catch {
+  } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new Error(
       "Não foi possível conectar ao servidor. Verifique se a API Java está disponível.",

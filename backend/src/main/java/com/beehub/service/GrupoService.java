@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,6 +61,19 @@ public class GrupoService {
             throw new AnoInvalidoException();
         }
 
+        List<Long> rmsAlunos = dto.rmsAlunos() == null ? List.of() : dto.rmsAlunos();
+        if (new HashSet<>(rmsAlunos).size() != rmsAlunos.size()) {
+            throw new GrupoInvalidoException("Um aluno não pode ser selecionado mais de uma vez.");
+        }
+        if (rmsAlunos.size() > dto.capacidadeMaxima()) {
+            throw new QuantidadeAlunosMaximaException("A quantidade de alunos excede a capacidade do grupo.");
+        }
+
+        List<Aluno> alunosSelecionados = rmsAlunos.stream()
+                .map(rmAluno -> alunoRepository.findByRmAluno(rmAluno)
+                        .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!")))
+                .toList();
+
         Grupo novoGrupo = new Grupo();
 
         novoGrupo.setOrientacao(buscarOrientacao);
@@ -68,7 +82,16 @@ public class GrupoService {
         novoGrupo.setAno(dto.ano());
         novoGrupo.setLinkFoto(URL_FOTO_PADRAO);
 
+        alunosSelecionados.forEach(aluno -> validarAlunoElegivel(aluno, novoGrupo));
+
         Grupo salvarGrupo = grupoRepository.save(novoGrupo);
+
+        alunosSelecionados.forEach(aluno -> {
+            aluno.setGrupo(salvarGrupo);
+        });
+        if (!alunosSelecionados.isEmpty()) {
+            alunoRepository.saveAll(alunosSelecionados);
+        }
 
         return new GrupoResumoDTO(
           salvarGrupo.getIdGrupo(),
@@ -113,7 +136,9 @@ public class GrupoService {
                 .map(a -> new UsuarioResumoDTO(
                         a.getRmAluno(),
                         a.getNome(),
-                        a.getLinkFoto()
+                        a.getLinkFoto(),
+                        a.getTurma(),
+                        a.getGrupo() != null ? a.getGrupo().getIdGrupo() : null
                 ))
                 .toList();
 
@@ -140,19 +165,12 @@ public class GrupoService {
         Aluno aluno = alunoRepository.findByRmAluno(rmAluno)
                 .orElseThrow(() -> new UsuarioNaoEncontradoException("Aluno não encontrado!"));
 
-        if(aluno.getGrupo().equals(grupo)){
-            throw new AlunoJaEstaNoGrupoException("Aluno já está no grupo!");
-        }
+        validarAlunoElegivel(aluno, grupo);
 
         Integer quant = grupo.getCapacidadeMaxima();
-
-        if(grupo.getAlunos().size() >= quant){
+        int alunosNoGrupo = grupo.getAlunos() == null ? 0 : grupo.getAlunos().size();
+        if(alunosNoGrupo >= quant){
             throw new QuantidadeAlunosMaximaException("O grupo atual excede o máximo de alunos!");
-        }
-
-        if(!Objects.equals(aluno.getCurso().getIdCurso(),
-                grupo.getOrientacao().getCurso().getIdCurso())){
-            throw new CursoInvalidoException("O aluno não pertence a este curso!");
         }
 
         aluno.setGrupo(grupo);
@@ -188,7 +206,9 @@ public class GrupoService {
                 .map(a -> new UsuarioResumoDTO(
                         a.getRmAluno(),
                         a.getNome(),
-                        a.getLinkFoto()
+                        a.getLinkFoto(),
+                        a.getTurma(),
+                        a.getGrupo() != null ? a.getGrupo().getIdGrupo() : null
                 ))
                 .toList();
 
@@ -311,6 +331,24 @@ public class GrupoService {
 
     private void validarProfessorGrupo(Grupo grupo, Long rmProfessor){
         validarProfessorOrientacao(grupo.getOrientacao(), rmProfessor);
+    }
+
+    private void validarAlunoElegivel(Aluno aluno, Grupo grupo) {
+        if (aluno.getGrupo() != null) {
+            throw new AlunoJaEstaNoGrupoException("O aluno já está vinculado a um grupo!");
+        }
+
+        Long idCursoAluno = aluno.getCurso() == null ? null : aluno.getCurso().getIdCurso();
+        Long idCursoOrientacao = grupo.getOrientacao().getCurso() == null
+                ? null
+                : grupo.getOrientacao().getCurso().getIdCurso();
+        if (!Objects.equals(idCursoAluno, idCursoOrientacao)) {
+            throw new CursoInvalidoException("O aluno não pertence ao curso desta orientação!");
+        }
+
+        if (!Objects.equals(aluno.getTurma(), grupo.getOrientacao().getTurma())) {
+            throw new GrupoInvalidoException("A turma do aluno não corresponde à turma desta orientação!");
+        }
     }
 
     private void validarProfessorOrientacao(Orientacao orientacao, Long rmProfesor){

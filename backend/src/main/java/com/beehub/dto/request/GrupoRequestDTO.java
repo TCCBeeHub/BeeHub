@@ -2,6 +2,8 @@ package com.beehub.dto.request;
 
 import jakarta.validation.constraints.*;
 
+import java.util.List;
+
 public record GrupoRequestDTO(
     @NotBlank(message = "O nome do grupo é necessário")
     String nomeGrupo,
@@ -15,5 +17,8 @@ public record GrupoRequestDTO(
 
     @NotNull(message = "Insira o ano do grupo")
     @Min(2020)
-    Integer ano
+    Integer ano,
+
+    @Size(max = 4, message = "Um grupo pode ter no máximo quatro alunos")
+    List<@NotNull @Positive Long> rmsAlunos
 ) {}

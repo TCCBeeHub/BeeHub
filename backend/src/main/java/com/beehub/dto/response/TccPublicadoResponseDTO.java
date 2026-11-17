@@ -2,6 +2,7 @@ package com.beehub.dto.response;
 
 import com.beehub.dto.comum.UsuarioResumoDTO;
 import com.beehub.entity.Tcc;
+import com.beehub.enums.GrupoOrientacao;
 
 import java.util.List;
 
@@ -29,9 +30,13 @@ public record TccPublicadoResponseDTO(
                         .map(a -> new UsuarioResumoDTO(
                                 a.getRmAluno(),
                                 a.getNome(),
-                                a.getLinkFoto()
+                                a.getLinkFoto(),
+                                a.getTurma(),
+                                a.getGrupo().getIdGrupo()
                         ))
                         .toList(),
+
+
                 tcc.getGrupo().getOrientacao().getProfessor().getNome()
         );
     }

@@ -155,8 +155,7 @@ export function PortalApp() {
     if (!record && targetCollection === "grupos" && role === "professor") {
       draft.quantidadeAlunos = 0;
       draft.alunosSelecionados = [];
-      draft.idCurso = "";
-      draft.turma = "";
+      draft.idOrientacao = "";
     }
 
     setDialog({
@@ -196,53 +195,14 @@ export function PortalApp() {
           delete payload.linkFoto;
 
           if (role === "professor") {
-            const alunosSelecionados = (payload.alunosSelecionados || []).filter((rm) => rm !== "" && rm != null);
-            const cursoId = payload.idCurso;
-            const turma = payload.turma;
-            
+            const alunosSelecionados = (payload.alunosSelecionados || [])
+              .filter((rm) => rm !== "" && rm != null)
+              .map(Number);
+
             delete payload.quantidadeAlunos;
             delete payload.alunosSelecionados;
-            delete payload.idCurso;
-            delete payload.turma;
-
-            if (!cursoId || !turma) {
-              setFormError("Selecione o curso e a turma do grupo.");
-              return;
-            }
-
-            // Verifica se por algum motivo ele já tem orientação nessa turma (segurança extra)
-            let orientacaoExistente = (data.orientacoes || []).find(
-              (o) => matchesId(o.rmProfessor, user?.rmProfessor) && o.turma === turma
-            );
-
-            let idOrientacaoFinal;
-
-            if (orientacaoExistente) {
-              idOrientacaoFinal = orientacaoExistente.idOrientacao;
-            } else {
-              // Cria a orientação nova nos bastidores
-              const novaOrientacao = await createEntity("orientacoes", {
-                rmProfessor: user.rmProfessor,
-                idCurso: cursoId,
-                turma: turma
-              });
-              idOrientacaoFinal = novaOrientacao.idOrientacao;
-            }
-
-            payload.idOrientacao = idOrientacaoFinal;
-
-            // 1. Cria o grupo no backend
-            const grupoCriado = await createEntity(targetCollection, payload);
-            
-            // 2. Atualiza o idGrupo de cada aluno selecionado
-            if (alunosSelecionados.length > 0) {
-              for (const rmAluno of alunosSelecionados) {
-                const alunoOriginal = data.alunos.find((a) => matchesId(a.rmAluno, rmAluno));
-                if (alunoOriginal) {
-                  await updateEntity("alunos", rmAluno, { ...alunoOriginal, idGrupo: grupoCriado.idGrupo });
-                }
-              }
-            }
+            payload.rmsAlunos = alunosSelecionados;
+            await createEntity(targetCollection, payload);
 
             closeDialog();
             setFlash("Grupo criado e alunos vinculados com sucesso!");
