@@ -73,7 +73,9 @@ public class ProfessorService {
         return new UsuarioResumoDTO(
                 professorBanco.getRmProfessor(),
                 professorBanco.getNome(),
-                professorBanco.getLinkFoto()
+                professorBanco.getLinkFoto(),
+                null,
+                null
         );
     }
 
@@ -147,7 +149,9 @@ public class ProfessorService {
                 .map(o -> new UsuarioResumoDTO(
                         o.getProfessor().getRmProfessor(),
                         o.getProfessor().getNome(),
-                        o.getProfessor().getLinkFoto()
+                        o.getProfessor().getLinkFoto(),
+                        null,
+                        null
                 ))
                 .collect(Collectors.toList());
     }
@@ -188,7 +192,9 @@ public class ProfessorService {
                 .map(p -> new UsuarioResumoDTO(
                         p.getRmProfessor(),
                         p.getNome(),
-                        p.getLinkFoto()
+                        p.getLinkFoto(),
+                        null,
+                        null
                 ))
                 .toList();
     }

@@ -177,7 +177,9 @@ public class AlunoService {
                 .map(aluno -> new UsuarioResumoDTO(
                         aluno.getRmAluno(),
                         aluno.getNome(),
-                        aluno.getLinkFoto()
+                        aluno.getLinkFoto(),
+                        aluno.getTurma(),
+                        aluno.getGrupo() != null ? aluno.getGrupo().getIdGrupo() : null
                 ))
                 .collect(Collectors.toList());
     }
@@ -195,7 +197,9 @@ public class AlunoService {
                 .map(aluno -> new UsuarioResumoDTO(
                         aluno.getRmAluno(),
                         aluno.getNome(),
-                        aluno.getLinkFoto()
+                        aluno.getLinkFoto(),
+                        aluno.getTurma(),
+                        aluno.getGrupo() != null ? aluno.getGrupo().getIdGrupo() : null
                 ))
                 .toList();
     }

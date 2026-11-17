@@ -72,9 +72,7 @@ public class AlunoController {
     @ResponseStatus(HttpStatus.OK)
     public List<UsuarioResumoDTO> listarAlunos(@PathVariable Long idCurso,
                                                HttpSession session){
-
         sessaoValidator.validarAcessoInterno(session);
-
         return alunoService.listarAlunos(idCurso);
     }
 

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "alunos")
 @Getter
@@ -42,4 +44,7 @@ public class Aluno {
     @ManyToOne
     @JoinColumn(name = "idGrupo")
     private Grupo grupo;
+
+    @OneToMany(mappedBy = "aluno")
+    private List<MensagemGrupo> mensagensEnviadas;
 }

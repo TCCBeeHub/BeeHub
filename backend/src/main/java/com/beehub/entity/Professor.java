@@ -33,4 +33,7 @@ public class Professor {
 
     @OneToMany(mappedBy = "professor")
     private List<Orientacao> orientacoes;
+
+    @OneToMany(mappedBy = "professor")
+    private List<MensagemGrupo> mensagensEnviadas;
 }

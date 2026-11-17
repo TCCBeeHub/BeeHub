@@ -49,7 +49,6 @@ async function getList(
   );
 }
 
-// Para quando "não existir" é um estado normal (ex.: grupo ainda sem TCC).
 async function getOptional(path, signal) {
   try {
     return await apiRequest(path, { signal });
@@ -107,13 +106,6 @@ function normalizeRecords(records, collection) {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/* Adaptação: o backend devolve DTOs "resumo" (rmUsuario, codTcc, sem  */
-/* ids de relacionamento). As telas usam registros planos (rmAluno,    */
-/* rmProfessor, codTCC, idGrupo...). A tradução fica toda aqui.        */
-/* Quando o backend passar a enviar esses campos, eles têm prioridade. */
-/* ------------------------------------------------------------------ */
-
 function fromUsuario(record, field) {
   const { rmUsuario, ...rest } = record;
   return { ...rest, [field]: rest[field] ?? rmUsuario };
@@ -128,8 +120,6 @@ function fromTcc(record, fallbackStatus) {
   };
 }
 
-// GET /orientacao* hoje só traz nomeCurso/nomeEtec/turma. Descobre o idCurso
-// cruzando pelos nomes (nome da Etec é único; nome do curso é único por Etec).
 function findCursoId(orientation, cursos, etecs) {
   if (orientation.idCurso != null) return orientation.idCurso;
   const etec = etecs.find((item) => item.nome === orientation.nomeEtec);
@@ -144,14 +134,12 @@ function findCursoId(orientation, cursos, etecs) {
 function adaptOrientations(list, { rmProfessor, cursos, etecs }) {
   return list.map((item, index) => ({
     ...item,
-    // O índice só é um fallback para versões antigas da API sem idOrientacao.
     idOrientacao: item.idOrientacao ?? index + 1,
     idCurso: findCursoId(item, cursos, etecs),
     rmProfessor: item.rmProfessor ?? rmProfessor,
   }));
 }
 
-// GET /tcc (público) não traz idGrupo: liga pelo nome quando o nome é único.
 function attachGroupId(tccs, groups) {
   return tccs.map((tcc) => {
     if (tcc.idGrupo != null) return tcc;
@@ -202,26 +190,19 @@ function finalize(data) {
   };
 }
 
-/* ------------------------------------------------------------------ */
-/* Um carregador por perfil. Cada um só chama rotas que o backend      */
-/* libera para aquele perfil (ver SessaoValidator nos controllers).    */
-/* ------------------------------------------------------------------ */
-
 async function loadAdminData({ base, signal }) {
-  // Busca a lista global de professores e as outras entidades
   const [orientationList, groupList, tccList, professorList] = await Promise.all([
     getList("/orientacao", signal),
     getList("/grupo", signal),
     getList("/tcc", signal),
-    getList("/professor", signal), // <--- MUDANÇA AQUI: busca todos de uma vez
+    getList("/professor", signal),
   ]);
 
   const courseIds = base.cursos.map((curso) => curso.idCurso);
-  const alunos = await loadStudents(courseIds, signal); // Alunos continuam por curso
+  const alunos = await loadStudents(courseIds, signal);
   
   const grupos = normalizeRecords(groupList, "grupos");
   
-  // Transforma a lista global de professores usando o mesmo padrão dos alunos
   const professores = professorList.map((item) => fromUsuario(item, "rmProfessor"));
 
   return finalize({
@@ -258,41 +239,25 @@ async function loadProfessorData({ base, user, signal }) {
     etecs: base.etecs,
   });
 
-  // O detalhe do grupo traz nomeCurso/nomeEtec (para achar a orientação do
-  // grupo) e a lista de alunos.
   const detalhes = await Promise.all(
     groupList.map((grupo) => apiRequest(`/grupo/${enc(grupo.idGrupo)}`, { signal })),
   );
 
   const grupos = [];
-  const alunos = [];
   groupList.forEach((grupo, index) => {
     const detalhe = detalhes[index];
-    const orientacao =
-      orientacoes.find((item) =>
-        sameId(item.idOrientacao, grupo.idOrientacao),
-      ) ||
-      (orientacoes.length === 1
-        ? orientacoes[0]
-        : orientacoes.find(
-            (item) =>
-              item.nomeCurso === detalhe.nomeCurso &&
-              item.nomeEtec === detalhe.nomeEtec,
-          ));
-
+    const orientacao = orientacoes.find((item) => sameId(item.idOrientacao, grupo.idOrientacao)) || orientacoes[0];
     grupos.push({
       ...grupo,
       idOrientacao: grupo.idOrientacao ?? orientacao?.idOrientacao,
     });
-    for (const membro of detalhe.alunos ?? []) {
-      alunos.push({
-        idGrupo: grupo.idGrupo,
-        idCurso: orientacao?.idCurso ?? undefined,
-        turma: orientacao?.turma,
-        ...fromUsuario(membro, "rmAluno"),
-      });
-    }
   });
+
+  const todosOsCursosIds = base.cursos.map((c) => c.idCurso);
+  let alunos = [];
+  if (todosOsCursosIds.length > 0) {
+    alunos = await loadStudents(todosOsCursosIds, signal);
+  }
 
   const tccs = (
     await Promise.all(
@@ -306,15 +271,9 @@ async function loadProfessorData({ base, user, signal }) {
     )
   ).filter(Boolean);
 
-  const idCursoOrientado = new Set(
-    orientacoes.map((item) => String(item.idCurso)),
-  );
-
   return finalize({
     ...base,
-    cursos: base.cursos.filter((curso) =>
-      idCursoOrientado.has(String(curso.idCurso)),
-    ),
+    cursos: base.cursos,
     professores: [
       {
         rmProfessor: String(rm),
@@ -338,7 +297,6 @@ async function loadAlunoData({ base, user, signal }) {
   }
   const idGrupo = user.idGrupo ?? null;
 
-  // Aluno sem grupo é um estado válido: só não há grupo nem TCC para mostrar.
   const [perfil, grupo, tcc] = await Promise.all([
     apiRequest(`/aluno/${enc(rm)}`, { signal }),
     idGrupo != null ? apiRequest(`/grupo/${enc(idGrupo)}`, { signal }) : null,
