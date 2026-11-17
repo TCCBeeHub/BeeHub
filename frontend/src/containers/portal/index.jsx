@@ -2,7 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { LogOut, Search, X } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import logo from "/imagens/BeeHubHorizontal.jpeg";
-import { createEntity, deleteEntity, getPortalData, updateEntity, updateProfessorGroup, updateProfessorGroupTcc } from "../../services/portalApi";
+import { 
+  createEntity, 
+  deleteEntity, 
+  getPortalData, 
+  updateEntity, 
+  updateProfessorGroup, 
+  updateProfessorGroupTcc,
+  adicionarAlunoAoGrupo // <--- IMPORTADO AQUI
+} from "../../services/portalApi";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { ACCOUNT_PASSWORD_FIELDS, buildDeleteError, COLLECTION_CONFIG, filterCollection, getCollectionForSection, getPageTitle, getPathRecordId, getSectionFromPath, getTccCourse, matchesId, NAV_ITEMS, ROLE_LABELS } from "./portal-data";
@@ -155,7 +163,8 @@ export function PortalApp() {
     if (!record && targetCollection === "grupos" && role === "professor") {
       draft.quantidadeAlunos = 0;
       draft.alunosSelecionados = [];
-      draft.idOrientacao = "";
+      draft.idCurso = "";
+      draft.turma = "";
     }
 
     setDialog({
@@ -195,21 +204,55 @@ export function PortalApp() {
           delete payload.linkFoto;
 
           if (role === "professor") {
-            const alunosSelecionados = (payload.alunosSelecionados || [])
-              .filter((rm) => rm !== "" && rm != null)
-              .map(Number);
-
+            const alunosSelecionados = (payload.alunosSelecionados || []).filter((rm) => rm !== "" && rm != null);
+            const cursoId = payload.idCurso;
+            const turma = payload.turma;
+            
             delete payload.quantidadeAlunos;
             delete payload.alunosSelecionados;
-            payload.rmsAlunos = alunosSelecionados;
-            await createEntity(targetCollection, payload);
+            delete payload.idCurso;
+            delete payload.turma;
+
+            if (!cursoId || !turma) {
+              setFormError("Selecione o curso e a turma do grupo.");
+              return;
+            }
+
+            // 1. Cria a Orientação (O backend precisa permitir professor)
+            let orientacaoExistente = (data.orientacoes || []).find(
+              (o) => matchesId(o.rmProfessor, user?.rmProfessor) && o.turma === turma
+            );
+
+            let idOrientacaoFinal;
+            if (orientacaoExistente) {
+              idOrientacaoFinal = orientacaoExistente.idOrientacao;
+            } else {
+              const novaOrientacao = await createEntity("orientacoes", {
+                rmProfessor: user.rmProfessor,
+                idCurso: cursoId,
+                turma: turma
+              });
+              idOrientacaoFinal = novaOrientacao.idOrientacao;
+            }
+
+            payload.idOrientacao = idOrientacaoFinal;
+
+            // 2. Cria o Grupo
+            const grupoCriado = await createEntity(targetCollection, payload);
+            
+            // 3. Insere os alunos usando a rota oficial do seu GrupoController
+            if (alunosSelecionados.length > 0) {
+              for (const rmAluno of alunosSelecionados) {
+                await adicionarAlunoAoGrupo(grupoCriado.idGrupo, rmAluno);
+              }
+            }
 
             closeDialog();
             setFlash("Grupo criado e alunos vinculados com sucesso!");
             await refreshPortal();
             return;
           } else {
-            // Admin criando grupo: comportamento antigo
+            // Admin criando grupo
             delete payload.quantidadeAlunos;
             delete payload.alunosSelecionados;
           }
@@ -231,11 +274,13 @@ export function PortalApp() {
       setFlash("Alterações salvas no servidor.");
       await refreshPortal();
     } catch (error) {
-      setFormError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível salvar as alterações no servidor.",
-      );
+      // Tratamento de erro melhorado para mostrar a mensagem do backend
+      let detalhe = error instanceof Error ? error.message : "Erro desconhecido";
+      if (error?.response?.data?.message) {
+        detalhe = error.response.data.message;
+      }
+      setFormError(`Ocorreu um erro: ${detalhe}`);
+      console.error("Erro no saveRecord:", error);
     }
   };
 

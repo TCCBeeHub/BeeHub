@@ -461,3 +461,9 @@ export function deleteEntity(collection, key) {
     { method: "DELETE" },
   );
 }
+
+export function adicionarAlunoAoGrupo(idGrupo, rmAluno) {
+  return apiRequest(`/grupo/${enc(idGrupo)}/aluno/${enc(rmAluno)}`, {
+    method: "POST",
+  });
+}
