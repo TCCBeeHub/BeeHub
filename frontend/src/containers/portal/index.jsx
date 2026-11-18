@@ -9,7 +9,7 @@ import {
   updateEntity, 
   updateProfessorGroup, 
   updateProfessorGroupTcc,
-  adicionarAlunoAoGrupo // <--- IMPORTADO AQUI
+  adicionarAlunoAoGrupo
 } from "../../services/portalApi";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -159,12 +159,11 @@ export function PortalApp() {
       }
     }
 
-    // Professor criando grupo: abre o form preparado para escolher Curso/Turma e Alunos
+    // Professor criando grupo: abre o form preparado com idOrientacao vazio
     if (!record && targetCollection === "grupos" && role === "professor") {
       draft.quantidadeAlunos = 0;
       draft.alunosSelecionados = [];
-      draft.idCurso = "";
-      draft.turma = "";
+      draft.idOrientacao = "";
     }
 
     setDialog({
@@ -204,43 +203,22 @@ export function PortalApp() {
           delete payload.linkFoto;
 
           if (role === "professor") {
-            const alunosSelecionados = (payload.alunosSelecionados || []).filter((rm) => rm !== "" && rm != null);
-            const cursoId = payload.idCurso;
-            const turma = payload.turma;
-            
+            const alunosSelecionados = (payload.alunosSelecionados || [])
+              .filter((rm) => rm !== "" && rm != null);
+              
             delete payload.quantidadeAlunos;
             delete payload.alunosSelecionados;
-            delete payload.idCurso;
-            delete payload.turma;
 
-            if (!cursoId || !turma) {
-              setFormError("Selecione o curso e a turma do grupo.");
+            // O professor apenas usa a orientação que o Admin já criou
+            if (!payload.idOrientacao) {
+              setFormError("Selecione uma orientação para o grupo.");
               return;
             }
 
-            // 1. Cria a Orientação (O backend precisa permitir professor)
-            let orientacaoExistente = (data.orientacoes || []).find(
-              (o) => matchesId(o.rmProfessor, user?.rmProfessor) && o.turma === turma
-            );
-
-            let idOrientacaoFinal;
-            if (orientacaoExistente) {
-              idOrientacaoFinal = orientacaoExistente.idOrientacao;
-            } else {
-              const novaOrientacao = await createEntity("orientacoes", {
-                rmProfessor: user.rmProfessor,
-                idCurso: cursoId,
-                turma: turma
-              });
-              idOrientacaoFinal = novaOrientacao.idOrientacao;
-            }
-
-            payload.idOrientacao = idOrientacaoFinal;
-
-            // 2. Cria o Grupo
+            // 1. Cria o Grupo
             const grupoCriado = await createEntity(targetCollection, payload);
             
-            // 3. Insere os alunos usando a rota oficial do seu GrupoController
+            // 2. Insere os alunos
             if (alunosSelecionados.length > 0) {
               for (const rmAluno of alunosSelecionados) {
                 await adicionarAlunoAoGrupo(grupoCriado.idGrupo, rmAluno);
@@ -274,7 +252,6 @@ export function PortalApp() {
       setFlash("Alterações salvas no servidor.");
       await refreshPortal();
     } catch (error) {
-      // Tratamento de erro melhorado para mostrar a mensagem do backend
       let detalhe = error instanceof Error ? error.message : "Erro desconhecido";
       if (error?.response?.data?.message) {
         detalhe = error.response.data.message;

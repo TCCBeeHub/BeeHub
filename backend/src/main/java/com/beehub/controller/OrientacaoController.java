@@ -24,8 +24,7 @@ public class OrientacaoController {
     @ResponseStatus(HttpStatus.CREATED)
     public OrientacaoResponseDTO criarOrientacao(@Valid @RequestBody OrientacaoRequestDTO dto,
                                                  HttpSession session){
-        sessaoValidator.validarAdminOuProfessor(session);
-
+        sessaoValidator.validarAdmin(session);
         return orientacaoService.cadastrarOrientacao(dto);
     }
 
