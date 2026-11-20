@@ -19,7 +19,7 @@ export function EntityForm({
   const isProfessorCreatingGroup = role === "professor" && collection === "grupos" && !editing;
 
   const allowedFields = editing
-    ? editableFields(role, collection, config)
+    ? [...editableFields(role, collection, config), "idOrientacao"] 
     : role === "administrador"
       ? [...editableFields(role, collection, config), accountPasswordField]
       : isProfessorCreatingGroup
@@ -32,7 +32,9 @@ export function EntityForm({
       ? adminCreateFields[collection]
       : isProfessorCreatingGroup
         ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
-        : config.fields;
+        : collection === "grupos" && editing 
+          ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima", "linkFoto"]
+          : config.fields;
 
   const fields = [...formFields, accountPasswordField].filter(Boolean).filter(
     (field) => allowedFields.includes(field) || (!editing && field === key && role === "administrador"),
@@ -49,7 +51,7 @@ export function EntityForm({
     if (field === "turma" || field === "periodo" || field === "status") return "select";
     if (["descricao", "tema"].includes(field)) return "textarea";
     if (["idAdmin", "idCurso", "quantAlunos", "idOrientacao", "idGrupo", "ano", "capacidadeMaxima"].includes(field)) return "number";
-    if (field.startsWith("link")) return "url";
+    if (field.startsWith("link")) return "text"; 
     if (field === "email") return "email";
     if (field === "dataCriacao") return "date";
     return "text";
@@ -57,9 +59,7 @@ export function EntityForm({
 
   const choicesFor = (field) => {
     if (field === "codEtec") return data.etecs.map((item) => [String(item.codEtec), item.nome]);
-
     if (field === "idCurso") return (data.cursos || []).map((item) => [String(item.idCurso || item.id), item.nome]);
-
     if (field === "idGrupo") {
       const availableGroups = role === "aluno"
         ? data.grupos.filter((item) => item.idGrupo === Number(user?.idGrupo))
@@ -68,9 +68,8 @@ export function EntityForm({
           : data.grupos;
       return availableGroups.map((item) => [String(item.idGrupo), item.nomeGrupo]);
     }
-
     if (field === "idOrientacao") {
-      if (role === "professor") {
+      if (role === "professor" && !editing) {
         const orientacoesSemGrupo = data.orientacoes.filter((o) => 
           matchesId(o.rmProfessor, user?.rmProfessor) && 
           !data.grupos.some((g) => matchesId(g.idOrientacao, o.idOrientacao))
@@ -82,20 +81,14 @@ export function EntityForm({
       }
       return data.orientacoes.map((item) => [String(item.idOrientacao), `RM ${item.rmProfessor} · Curso ${item.idCurso} · Turma ${item.turma}`]);
     }
-
     if (field === "turma") {
       if (isProfessorCreatingGroup) {
-        const minhasOrientacoes = (data.orientacoes || []).filter(
-          (o) => matchesId(o.rmProfessor, user?.rmProfessor)
-        );
+        const minhasOrientacoes = (data.orientacoes || []).filter((o) => matchesId(o.rmProfessor, user?.rmProfessor));
         const turmasJaOrientadas = minhasOrientacoes.map((o) => o.turma);
-        return [["A", "Turma A"], ["B", "Turma B"]].filter(
-          ([val]) => !turmasJaOrientadas.includes(val)
-        );
+        return [["A", "Turma A"], ["B", "Turma B"]].filter(([val]) => !turmasJaOrientadas.includes(val));
       }
       return [["A", "Turma A"], ["B", "Turma B"]];
     }
-
     if (field === "rmProfessor") return data.professores.map((item) => [String(item.rmProfessor), `RM ${item.rmProfessor} · ${item.email}`]);
     if (field === "periodo") return [["Manhã", "Manhã"], ["Tarde", "Tarde"], ["Noite", "Noite"]];
     if (field === "status") return Object.entries(STATUS_LABELS);
@@ -115,10 +108,7 @@ export function EntityForm({
 
   const quantidadeAlunos = Math.max(0, Number(record.quantidadeAlunos) || 0);
   const alunosSelecionados = Array.isArray(record.alunosSelecionados) ? record.alunosSelecionados : [];
-  const quantidadeMaximaAlunos = Math.min(
-    Math.max(0, Number(record.capacidadeMaxima) || 0),
-    alunosDisponiveis.length,
-  );
+  const quantidadeMaximaAlunos = Math.min(Math.max(0, Number(record.capacidadeMaxima) || 0), alunosDisponiveis.length);
 
   const handleQuantidadeChange = (event) => {
     const bruto = Number(event.target.value) || 0;
@@ -136,21 +126,20 @@ export function EntityForm({
 
   const handleFieldChange = (field, value) => {
     onChange(field, value);
-
     if (["idOrientacao", "idCurso", "turma"].includes(field)) {
       onChange("quantidadeAlunos", 0);
       onChange("alunosSelecionados", []);
     } else if (field === "capacidadeMaxima") {
-      const limite = Math.min(
-        Math.max(0, Number(value) || 0),
-        alunosDisponiveis.length,
-      );
+      const limite = Math.min(Math.max(0, Number(value) || 0), alunosDisponiveis.length);
       if (quantidadeAlunos > limite) {
         onChange("quantidadeAlunos", limite);
         onChange("alunosSelecionados", alunosSelecionados.slice(0, limite));
       }
     }
   };
+
+  const isEditingGroup = collection === "grupos" && editing;
+  const isAdmin = role === "administrador";
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -163,7 +152,7 @@ export function EntityForm({
           <button className="icon-action" onClick={onClose} aria-label="Fechar"><X size={19} /></button>
         </div>
         <p className="form-intro">
-          {role === "administrador"
+          {isAdmin
             ? "Preencha os atributos do MER."
             : isProfessorCreatingGroup
               ? "Escolha uma orientação disponível. Os alunos elegíveis serão filtrados pelo curso e pela turma dessa orientação."
@@ -174,10 +163,34 @@ export function EntityForm({
             {fields.map((field) => {
               const type = getFieldType(field);
               const choices = choicesFor(field);
+              // Garante que o valor 3 (número) vire "3" (string) para o input
               const value = record[field] != null ? String(record[field]) : "";
               const isKey = field === key;
               const isLockedKey = (editing && isKey) || (!editing && isKey && role !== "administrador");
-              const isDisabled = isLockedKey;
+              
+              // Bloqueia Orientação na edição
+              const isOrientacaoLocked = isEditingGroup && field === "idOrientacao" && !isAdmin;
+              // Bloqueia Capacidade na edição para não-admin
+              const isCapacidadeLocked = isEditingGroup && field === "capacidadeMaxima" && !isAdmin;
+              // Bloqueia tudo para o aluno, menos a foto
+              const isAlunoBlocked = role === "aluno" && isEditingGroup && field !== "linkFoto";
+
+              const isDisabled = isLockedKey || isOrientacaoLocked || isCapacidadeLocked || isAlunoBlocked;
+
+              // Renderiza a Orientação como texto (para não virar select)
+              if (isEditingGroup && field === "idOrientacao") {
+                return (
+                  <label className="form-field" key={field}>
+                    <span>{FIELD_LABELS[field]}</span>
+                    <input 
+                      type="text" 
+                      value={formatValue(collection, field, record[field], data)} 
+                      disabled 
+                      readOnly
+                    />
+                  </label>
+                );
+              }
 
               return (
                 <label className="form-field" key={field}>
@@ -189,10 +202,7 @@ export function EntityForm({
                       required={!editing}
                       onChange={(event) => {
                         const isNumberField = ["idCurso", "idGrupo", "idOrientacao"].includes(field);
-                        const nextValue = isNumberField 
-                          ? (event.target.value === "" ? "" : Number(event.target.value)) 
-                          : event.target.value;
-                        
+                        const nextValue = isNumberField ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value;
                         handleFieldChange(field, nextValue);
                       }}
                     >
@@ -208,17 +218,13 @@ export function EntityForm({
                       type={type}
                       value={value}
                       disabled={isDisabled}
-                      required={!editing && !["linkFoto", "linkSlide", "linkArtigo", "linkSite", "descricao"].includes(field)}
+                      required={!editing && !field.startsWith("link") && field !== "descricao"} 
                       min={field === "capacidadeMaxima" ? "1" : type === "number" ? "0" : undefined}
                       step={type === "number" ? "1" : undefined}
-                      onChange={(event) =>
-                        handleFieldChange(
-                          field,
-                          type === "number" && event.target.value !== ""
-                            ? Number(event.target.value)
-                            : event.target.value,
-                        )
-                      }
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        handleFieldChange(field, type === "number" ? (val === "" ? "" : Number(val)) : val);
+                      }}
                     />
                   )}
                 </label>
@@ -264,12 +270,6 @@ export function EntityForm({
                   </div>
                 )}
               </>
-            )}
-
-            {isProfessorCreatingGroup && choicesFor("idOrientacao").length === 0 && (
-              <div className="form-error" role="status" style={{ gridColumn: "1 / -1", background: "rgba(255, 100, 100, 0.1)", color: "#ff6464", padding: "10px", borderRadius: "5px" }}>
-                Não há orientações disponíveis para criar um grupo. Solicite a criação de uma orientação à coordenação ou finalize um grupo existente.
-              </div>
             )}
           </div>
           {formError && <div className="form-error" role="alert">{formError}</div>}

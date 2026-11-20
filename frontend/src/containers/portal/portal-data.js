@@ -140,10 +140,21 @@ export function formatValue(collection, field, value, data) {
   }
   if (field === "idOrientacao" && collection === "grupos") {
     const orientation = data.orientacoes.find(
-      (item) => item.idOrientacao === Number(value),
+      (item) => matchesId(item.idOrientacao, value)
     );
-    if (!orientation) return value;
-    return `RM ${orientation.rmProfessor} · Turma ${orientation.turma}`;
+    if (!orientation) return "—";
+    
+    const professor = data.professores.find(
+      (p) => matchesId(p.rmProfessor, orientation.rmProfessor)
+    );
+    const curso = data.cursos.find(
+      (c) => matchesId(c.idCurso, orientation.idCurso)
+    );
+
+    const nomeProf = professor?.nome || `RM ${orientation.rmProfessor}`;
+    const nomeCurso = curso?.nome || "Curso não encontrado";
+    
+    return `${nomeProf} (${nomeCurso} - Turma ${orientation.turma})`;
   }
   if (field === "rmProfessor") return `RM ${value}`;
   if (field === "rmAluno") return `RM ${value}`;

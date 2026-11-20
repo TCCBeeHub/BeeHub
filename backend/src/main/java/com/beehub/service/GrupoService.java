@@ -99,7 +99,8 @@ public class GrupoService {
           salvarGrupo.getLinkFoto(),
           salvarGrupo.getNomeGrupo(),
           salvarGrupo.getOrientacao().getProfessor().getNome(),
-          salvarGrupo.getAno()
+          salvarGrupo.getAno(),
+          salvarGrupo.getCapacidadeMaxima()
         );
     }
 
@@ -247,7 +248,8 @@ public class GrupoService {
                         g.getLinkFoto(),
                         g.getNomeGrupo(),
                         g.getOrientacao().getProfessor().getNome(),
-                        g.getAno()
+                        g.getAno(),
+                        g.getCapacidadeMaxima()
                 ))
                 .toList();
     }
@@ -263,7 +265,8 @@ public class GrupoService {
                         g.getLinkFoto(),
                         g.getNomeGrupo(),
                         g.getOrientacao().getProfessor().getNome(),
-                        g.getAno()
+                        g.getAno(),
+                        g.getCapacidadeMaxima()
                 ))
                 .toList();
     }

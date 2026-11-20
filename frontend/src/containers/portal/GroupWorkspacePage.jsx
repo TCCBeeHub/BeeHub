@@ -26,6 +26,7 @@ export function GroupWorkspacePage({
   const courseName = data.cursos.find(
     (item) => String(item.idCurso) === String(orientation?.idCurso),
   )?.nome || "—";
+  
   const [editingTcc, setEditingTcc] = useState(false);
   const [tccDraft, setTccDraft] = useState({});
   const [tccBusy, setTccBusy] = useState(false);
@@ -262,15 +263,13 @@ export function GroupWorkspacePage({
             <span className="eyebrow">COMUNICAÇÃO</span>
             <h2><MessageCircle size={18} /> Conversas do grupo</h2>
           </div>
-          <span className="local-message-tag"><Send size={12} /> DEMONSTRAÇÃO</span>
+          <span className="local-message-tag"><Send size={12} /> PRIVADA</span>
         </div>
         <ConversationPage
           role="professor"
           user={user}
           data={data}
           groupId={group.idGrupo}
-          selected=""
-          onSelect={() => {}}
         />
       </section>
     </>

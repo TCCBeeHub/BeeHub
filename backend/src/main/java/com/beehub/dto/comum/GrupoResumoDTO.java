@@ -6,5 +6,6 @@ public record GrupoResumoDTO(
         String linkFoto,
         String nomeGrupo,
         String nomeOrientador,
-        Integer ano
+        Integer ano,
+        Integer capacidadeMaxima
 ) {}

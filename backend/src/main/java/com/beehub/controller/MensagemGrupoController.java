@@ -44,6 +44,31 @@ public class MensagemGrupoController {
         return mensagemService.enviar(idGrupo, rm, tipo, dto);
     }
 
+    @PutMapping("/{idMensagem}")
+    @ResponseStatus(HttpStatus.OK)
+    public MensagemGrupoResponseDTO editar(@PathVariable Long idGrupo,
+                                           @PathVariable Long idMensagem,
+                                           @Valid @RequestBody MensagemGrupoRequestDTO dto,
+                                           HttpSession session) {
+        TipoRemetenteMensagem tipo = tipoRemetente(session);
+        Long rm = tipo == TipoRemetenteMensagem.PROFESSOR
+                ? sessaoValidator.validarProfessorLogado(session)
+                : sessaoValidator.validarAlunoLogado(session);
+        return mensagemService.editar(idGrupo, idMensagem, rm, tipo, dto.conteudo());
+    }
+
+    @DeleteMapping("/{idMensagem}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluir(@PathVariable Long idGrupo,
+                        @PathVariable Long idMensagem,
+                        HttpSession session) {
+        TipoRemetenteMensagem tipo = tipoRemetente(session);
+        Long rm = tipo == TipoRemetenteMensagem.PROFESSOR
+                ? sessaoValidator.validarProfessorLogado(session)
+                : sessaoValidator.validarAlunoLogado(session);
+        mensagemService.excluir(idGrupo, idMensagem, rm, tipo);
+    }
+
     private TipoRemetenteMensagem tipoRemetente(HttpSession session) {
         if (session.getAttribute(SessaoValidator.PROFESSOR) != null) {
             return TipoRemetenteMensagem.PROFESSOR;

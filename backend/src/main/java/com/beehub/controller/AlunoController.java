@@ -1,12 +1,10 @@
 package com.beehub.controller;
 
-import com.beehub.dto.response.AlunoLoginResponseDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarTurmaDTO;
 import com.beehub.enums.GrupoOrientacao;
 import com.beehub.security.SessaoValidator;
 import com.beehub.dto.comum.AlunoResumoDTO;
 import com.beehub.dto.comum.UsuarioResumoDTO;
-import com.beehub.dto.request.AlunoLoginRequestDTO;
 import com.beehub.dto.request.AlunoRequestDTO;
 import com.beehub.dto.response.AlunoResponseDTO;
 import com.beehub.dto.update.AlunoRequestAtualizarDTO;
@@ -33,21 +31,6 @@ public class AlunoController {
                              HttpSession session){
         sessaoValidator.validarAdmin(session);
         return alunoService.cadastrarAluno(dto, idCurso);
-    }
-
-    @PostMapping("/login")
-    @ResponseStatus(HttpStatus.OK)
-    public AlunoLoginResponseDTO loginAluno(@Valid @RequestBody AlunoLoginRequestDTO dto,
-                                       HttpSession session){
-
-        AlunoLoginResponseDTO aluno = alunoService.loginAluno(dto);
-
-        session.setAttribute(
-                SessaoValidator.ALUNO,
-                dto.rmAluno()
-        );
-
-        return aluno;
     }
 
     @PutMapping("/{rmAluno}")

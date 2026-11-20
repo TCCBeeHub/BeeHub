@@ -2,7 +2,6 @@ package com.beehub.controller;
 
 import com.beehub.dto.comum.ProfessorResumoDTO;
 import com.beehub.dto.comum.UsuarioResumoDTO;
-import com.beehub.dto.request.ProfessorLoginRequestDTO;
 import com.beehub.dto.request.ProfessorRequestDTO;
 import com.beehub.dto.response.ProfessorResponseDTO;
 import com.beehub.dto.update.ProfessorRequestAtualizarDTO;
@@ -29,20 +28,6 @@ public class ProfessorController {
                                                  HttpSession session){
         sessaoValidator.validarAdmin(session);
         return professorService.cadastrarProfessor(dto);
-    }
-
-    @PostMapping("/login")
-    @ResponseStatus(HttpStatus.OK)
-    public UsuarioResumoDTO loginProfessor(@Valid @RequestBody ProfessorLoginRequestDTO dto,
-                                           HttpSession session){
-        UsuarioResumoDTO professor = professorService.loginProfessor(dto);
-
-        session.setAttribute(
-                SessaoValidator.PROFESSOR,
-                dto.rmProfessor()
-        );
-
-        return professor;
     }
 
     @PutMapping("/{rmProfessor}")

@@ -3009,3 +3009,39 @@
     flex-wrap: wrap;
   }
 }
+
+.message-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.message-actions button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.message-actions button:hover {
+  opacity: 1;
+}
+
+.message-edit-form {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.message-edit-form input {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-main);
+}

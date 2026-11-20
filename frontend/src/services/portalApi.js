@@ -343,6 +343,8 @@ async function loadAlunoData({ base, user, signal }) {
             nomeGrupo: grupo.nomeGrupo,
             linkFoto: grupo.linkFoto,
             ano: grupo.ano,
+            idOrientacao: grupo.idOrientacao, 
+            capacidadeMaxima: grupo.capacidadeMaxima, 
             nomeOrientador: grupo.nomeOrientador,
             nomeEtec: grupo.nomeEtec,
             nomeCurso: grupo.nomeCurso,
@@ -453,6 +455,19 @@ export function sendGroupMessage(idGrupo, conteudo) {
   });
 }
 
+export function editarMensagem(idGrupo, idMensagem, conteudo) {
+  return apiRequest(`/conversa/grupo/${enc(idGrupo)}/${enc(idMensagem)}`, {
+    method: "PUT",
+    body: { conteudo },
+  });
+}
+
+export function excluirMensagem(idGrupo, idMensagem) {
+  return apiRequest(`/conversa/grupo/${enc(idGrupo)}/${enc(idMensagem)}`, {
+    method: "DELETE",
+  });
+}
+
 export function deleteEntity(collection, key) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
@@ -462,8 +477,13 @@ export function deleteEntity(collection, key) {
   );
 }
 
+// NOVA FUNÇÃO: Adiciona aluno ao grupo via rota oficial
 export function adicionarAlunoAoGrupo(idGrupo, rmAluno) {
   return apiRequest(`/grupo/${enc(idGrupo)}/aluno/${enc(rmAluno)}`, {
     method: "POST",
   });
+}
+
+export function logoutRequest() {
+  return apiRequest("/auth/logout", { method: "POST" });
 }

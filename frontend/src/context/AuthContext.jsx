@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { loginRequest } from "../services/authApi";
+import { logoutRequest } from "../services/portalApi"; // IMPORTADO AQUI
 
 const AuthContext = createContext(null);
 const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
@@ -117,9 +118,16 @@ export function AuthProvider({ children }) {
     setSession(guestSession);
   }, []);
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    setSession(null);
+  // MUDANÇA AQUI: Função logout agora chama o backend primeiro
+  const logout = useCallback(async () => {
+    try {
+      await logoutRequest();
+    } catch (error) {
+      console.error("Erro ao invalidar sessão no backend:", error);
+    } finally {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      setSession(null);
+    }
   }, []);
 
   useEffect(() => {

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Check, FileText, LockKeyhole, Moon, Pencil, Search, Sun, UserRound, UsersRound } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
-import { COLLECTION_CONFIG, FIELD_LABELS, STATUS_LABELS, formatValue, getDetailFields, getTccCourse } from "./portal-data";
+import { COLLECTION_CONFIG, FIELD_LABELS, STATUS_LABELS, formatValue, 
+  getDetailFields, getTccCourse, orientationSummary } from "./portal-data";
 
 export function PageHeading({ eyebrow, title, description, action }) {
   return (

@@ -5,7 +5,9 @@ import com.beehub.dto.response.MensagemGrupoResponseDTO;
 import com.beehub.entity.Grupo;
 import com.beehub.entity.MensagemGrupo;
 import com.beehub.enums.TipoRemetenteMensagem;
+import com.beehub.exceptions.AcessoNaoPermitidoException;
 import com.beehub.exceptions.GrupoNaoEncontradoException;
+import com.beehub.exceptions.MensagemNaoEncontradaException;
 import com.beehub.exceptions.UsuarioNaoEncontradoException;
 import com.beehub.repository.AlunoRepository;
 import com.beehub.repository.GrupoRepository;
@@ -57,6 +59,43 @@ public class MensagemGrupoService {
         }
 
         return new MensagemGrupoResponseDTO(mensagemRepository.save(mensagem));
+    }
+
+    @Transactional
+    public MensagemGrupoResponseDTO editar(Long idGrupo, Long rmRemetente, Long idMensagem,
+                                           TipoRemetenteMensagem tipo, String novoConteudo){
+        validarAcesso(idGrupo, rmRemetente, tipo);
+
+        MensagemGrupo mensagem = mensagemRepository.findById(idMensagem)
+                .orElseThrow(() -> new MensagemNaoEncontradaException("Mensagem não encontrada!"));
+
+        if (tipo == TipoRemetenteMensagem.ALUNO && !mensagem.getAluno().getRmAluno().equals(rmRemetente)) {
+            throw new AcessoNaoPermitidoException("Você só pode editar suas próprias mensagens.");
+        }
+        if (tipo == TipoRemetenteMensagem.PROFESSOR && !mensagem.getProfessor().getRmProfessor().equals(rmRemetente)) {
+            throw new AcessoNaoPermitidoException("Você só pode editar suas próprias mensagens.");
+        }
+
+        mensagem.setConteudo(novoConteudo.trim());
+        return new MensagemGrupoResponseDTO(mensagemRepository.save(mensagem));
+    }
+
+    @Transactional
+    public void excluir(Long idGrupo, Long idMensagem, Long rmRemetente, TipoRemetenteMensagem tipo) {
+        validarAcesso(idGrupo, rmRemetente, tipo);
+
+        MensagemGrupo mensagem = mensagemRepository.findById(idMensagem)
+                .orElseThrow(() -> new RuntimeException("Mensagem não encontrada!"));
+
+        // Verifica se quem está tentando excluir é o dono da mensagem
+        if (tipo == TipoRemetenteMensagem.ALUNO && !mensagem.getAluno().getRmAluno().equals(rmRemetente)) {
+            throw new AcessoNaoPermitidoException("Você só pode excluir suas próprias mensagens.");
+        }
+        if (tipo == TipoRemetenteMensagem.PROFESSOR && !mensagem.getProfessor().getRmProfessor().equals(rmRemetente)) {
+            throw new AcessoNaoPermitidoException("Você só pode excluir suas próprias mensagens.");
+        }
+
+        mensagemRepository.delete(mensagem);
     }
 
     private Grupo validarAcesso(Long idGrupo, Long rmRemetente,
