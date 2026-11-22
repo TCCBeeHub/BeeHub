@@ -2,15 +2,15 @@ import { apiRequest } from "./httpClient";
 
 const LOGIN_CONFIG = {
   administrador: {
-    path: "/admin/login",
+    path: "/auth/admin/login",
     identifierField: "user",
   },
   aluno: {
-    path: "/aluno/login",
+    path: "/auth/aluno/login",
     identifierField: "rmAluno",
   },
   professor: {
-    path: "/professor/login",
+    path: "/auth/professor/login",
     identifierField: "rmProfessor",
   },
 };
