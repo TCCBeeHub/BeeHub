@@ -149,8 +149,11 @@ export function PortalApp() {
     }
 
     if (!record && targetCollection === "tccs") {
-      // O backend gera o codTCC e o idGrupo agora, então não precisamos mais
-      // preencher nada manualmente aqui.
+      // O backend gera o codTCC e o idGrupo agora, mas o frontend precisa
+      // do idGrupo no draft para exibir o "Grupo vinculado" na tela.
+      if (role === "aluno") {
+        draft.idGrupo = Number(user?.idGrupo) || "";
+      }
       if (role === "professor") {
         const assignedGroups = filterCollection(role, user, data, "grupos").filter(
           (group) => !data.tccs.some((item) => item.idGrupo === group.idGrupo),
@@ -236,17 +239,9 @@ export function PortalApp() {
           }
         }
 
-        if (targetCollection === "tccs" && !editing) {
-          // Remove campos que o TccRequestDTO não espera, o backend preenche
-          delete payload.idGrupo;
-          delete payload.codTCC;
-          delete payload.status;
-          delete payload.dataCriacao;
-          delete payload.linkSlide;
-          delete payload.linkArtigo;
-          delete payload.linkSite;
-          delete payload.feedbackOrientador;
-        }
+        // A limpeza do TCC foi movida para a função createEntity no portalApi.js
+        // para manter o PortalApp mais limpo. O createEntity já monta a URL correta
+        // (/tcc/grupo/{idGrupo}) e envia apenas tema e descricao.
 
         if (targetCollection === "alunos") {
           for (const field of ["email", "descricao", "linkFoto", "idGrupo"]) {

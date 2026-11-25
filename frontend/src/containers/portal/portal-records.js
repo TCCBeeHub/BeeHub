@@ -58,8 +58,12 @@ export function getNextTccCode(data) {
 export function validateRecord(collection, record, data, editingKey, role, user) {
   const config = COLLECTION_CONFIG[collection];
   const key = config.key;
+  // Curso e TCC têm a chave gerada pelo backend na criação
   const generatedCourseId = collection === "cursos" && !editingKey;
-  if (!generatedCourseId && !String(record[key] ?? "").trim()) {
+  const generatedTccCode = collection === "tccs" && !editingKey;
+  const generatedKey = generatedCourseId || generatedTccCode;
+
+  if (!generatedKey && !String(record[key] ?? "").trim()) {
     return `${FIELD_LABELS[key]} é obrigatório.`;
   }
   if (
@@ -70,7 +74,7 @@ export function validateRecord(collection, record, data, editingKey, role, user)
     return "Informe uma senha inicial para a nova conta.";
   }
   if (
-    !generatedCourseId &&
+    !generatedKey &&
     data[collection].some(
       (item) =>
         String(item[key]) === String(record[key]) &&
@@ -153,7 +157,7 @@ export function validateRecord(collection, record, data, editingKey, role, user)
   }
   if (collection === "tccs") {
     const groupId = Number(record.idGrupo);
-    if (!data.grupos.some((item) => item.idGrupo === groupId)) {
+    if (!record.idGrupo || !data.grupos.some((item) => item.idGrupo === groupId)) {
       return "Selecione um grupo cadastrado.";
     }
     if (
@@ -252,8 +256,8 @@ export function canCreate(role, collection, data, user) {
             .filter((group) =>
               data.orientacoes.some(
                 (item) =>
-                          String(item.idOrientacao) === String(group.idOrientacao) &&
-                          String(item.rmProfessor) === String(user?.rmProfessor),
+                  String(item.idOrientacao) === String(group.idOrientacao) &&
+                  String(item.rmProfessor) === String(user?.rmProfessor),
               ),
             )
             .map((group) => group.idGrupo),

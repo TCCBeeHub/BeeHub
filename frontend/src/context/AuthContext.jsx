@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { loginRequest } from "../services/authApi";
-import { logoutRequest } from "../services/portalApi"; // IMPORTADO AQUI
+import { logoutRequest } from "../services/portalApi";
 
 const AuthContext = createContext(null);
 const SESSION_STORAGE_KEY = "beehub-session-cookie-v1";
@@ -19,10 +19,7 @@ function readStoredSession() {
     if (!raw) return null;
 
     const session = JSON.parse(raw);
-    if (
-      !VALID_ROLES.includes(session.role) ||
-      !session.user
-    ) {
+    if (!VALID_ROLES.includes(session.role) || !session.user) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       return null;
     }
@@ -118,7 +115,6 @@ export function AuthProvider({ children }) {
     setSession(guestSession);
   }, []);
 
-  // MUDANÇA AQUI: Função logout agora chama o backend primeiro
   const logout = useCallback(async () => {
     try {
       await logoutRequest();

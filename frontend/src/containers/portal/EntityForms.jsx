@@ -9,7 +9,7 @@ export function EntityForm({
   const config = COLLECTION_CONFIG[collection];
   const key = config.key;
   const accountPasswordField = !editing && role === "administrador" ? ACCOUNT_PASSWORD_FIELDS[collection] : "";
-  
+
   const adminCreateFields = {
     cursos: ["nome", "quantAlunos", "periodo", "codEtec"],
     professores: ["rmProfessor", "nome"],
@@ -25,7 +25,7 @@ export function EntityForm({
       : isProfessorCreatingGroup
         ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
         : collection === "tccs"
-          ? ["tema", "descricao"] // <--- Apenas tema e descrição na criação
+          ? ["tema", "descricao"]
           : [];
 
   const formFields = !editing && role === "administrador" && adminCreateFields[collection]
@@ -33,8 +33,8 @@ export function EntityForm({
       : isProfessorCreatingGroup
         ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
         : collection === "tccs" && !editing
-          ? ["tema", "descricao"] // <--- Ordem visual na criação
-          : collection === "grupos" && editing 
+          ? ["tema", "descricao"]
+          : collection === "grupos" && editing
             ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima", "linkFoto"]
             : config.fields;
 
@@ -53,7 +53,7 @@ export function EntityForm({
     if (field === "turma" || field === "periodo" || field === "status") return "select";
     if (["descricao", "tema"].includes(field)) return "textarea";
     if (["idAdmin", "idCurso", "quantAlunos", "idOrientacao", "idGrupo", "ano", "capacidadeMaxima"].includes(field)) return "number";
-    if (field.startsWith("link")) return "text"; 
+    if (field.startsWith("link")) return "text";
     if (field === "email") return "email";
     if (field === "dataCriacao") return "date";
     return "text";
@@ -72,8 +72,8 @@ export function EntityForm({
     }
     if (field === "idOrientacao") {
       if (role === "professor" && !editing) {
-        const orientacoesSemGrupo = data.orientacoes.filter((o) => 
-          matchesId(o.rmProfessor, user?.rmProfessor) && 
+        const orientacoesSemGrupo = data.orientacoes.filter((o) =>
+          matchesId(o.rmProfessor, user?.rmProfessor) &&
           !data.grupos.some((g) => matchesId(g.idOrientacao, o.idOrientacao))
         );
         return orientacoesSemGrupo.map((item) => [
@@ -162,16 +162,16 @@ export function EntityForm({
         </p>
         <form onSubmit={onSave}>
           <div className="form-grid">
-            
-            {/* AVISO DE GRUPO (Apenas visual para o aluno) */}
+
+            {/* Aviso de grupo (apenas visual para o aluno) */}
             {collection === "tccs" && !editing && role === "aluno" && (
-              <div style={{ gridColumn: "1 / -1", marginBottom: "16px", padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px" }}>
+              <div className="tcc-group-warning" style={{ gridColumn: "1 / -1", marginBottom: "16px", padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px" }}>
                 <label className="form-field" style={{ margin: 0 }}>
                   <span>Grupo vinculado</span>
-                  <input 
-                    type="text" 
-                    value={record.idGrupo ? (data.grupos.find(g => String(g.idGrupo) === String(record.idGrupo))?.nomeGrupo || "Seu Grupo") : "Nenhum grupo vinculado"} 
-                    disabled 
+                  <input
+                    type="text"
+                    value={record.idGrupo ? (data.grupos.find(g => String(g.idGrupo) === String(record.idGrupo))?.nomeGrupo || "Seu Grupo") : "Nenhum grupo vinculado"}
+                    disabled
                     readOnly
                   />
                 </label>
@@ -184,7 +184,7 @@ export function EntityForm({
               const value = record[field] != null ? String(record[field]) : "";
               const isKey = field === key;
               const isLockedKey = (editing && isKey) || (!editing && isKey && role !== "administrador");
-              
+
               const isOrientacaoLocked = isEditingGroup && field === "idOrientacao" && !isAdmin;
               const isCapacidadeLocked = isEditingGroup && field === "capacidadeMaxima" && !isAdmin;
               const isAlunoBlocked = role === "aluno" && isEditingGroup && field !== "linkFoto";
@@ -195,10 +195,10 @@ export function EntityForm({
                 return (
                   <label className="form-field" key={field}>
                     <span>{FIELD_LABELS[field]}</span>
-                    <input 
-                      type="text" 
-                      value={formatValue(collection, field, record[field], data)} 
-                      disabled 
+                    <input
+                      type="text"
+                      value={formatValue(collection, field, record[field], data)}
+                      disabled
                       readOnly
                     />
                   </label>
@@ -231,7 +231,7 @@ export function EntityForm({
                       type={type}
                       value={value}
                       disabled={isDisabled}
-                      required={!editing && !field.startsWith("link") && field !== "descricao"} 
+                      required={!editing && !field.startsWith("link") && field !== "descricao"}
                       min={field === "capacidadeMaxima" ? "1" : type === "number" ? "0" : undefined}
                       step={type === "number" ? "1" : undefined}
                       onChange={(event) => {
@@ -288,7 +288,9 @@ export function EntityForm({
           {formError && <div className="form-error" role="alert">{formError}</div>}
           <div className="modal-actions">
             <button type="button" className="button button-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="button button-primary"><Check size={16} /> Salvar alterações</button>
+            <button type="submit" className="button button-primary">
+              <Check size={16} /> {editing ? "Salvar alterações" : "Cadastrar"}
+            </button>
           </div>
         </form>
       </section>

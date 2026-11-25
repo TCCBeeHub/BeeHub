@@ -49,11 +49,15 @@ async function getList(
   );
 }
 
-async function getOptional(path, signal) {
+// MUDANÇA: aceita tolerar 403 em chamadas específicas (allowForbidden)
+async function getOptional(path, signal, { allowForbidden = false } = {}) {
   try {
     return await apiRequest(path, { signal });
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
+    if (error instanceof ApiError) {
+      if (error.status === 404) return null;
+      if (allowForbidden && error.status === 403) return null;
+    }
     throw error;
   }
 }
@@ -200,9 +204,9 @@ async function loadAdminData({ base, signal }) {
 
   const courseIds = base.cursos.map((curso) => curso.idCurso);
   const alunos = await loadStudents(courseIds, signal);
-  
+
   const grupos = normalizeRecords(groupList, "grupos");
-  
+
   const professores = professorList.map((item) => fromUsuario(item, "rmProfessor"));
 
   return finalize({
@@ -246,7 +250,9 @@ async function loadProfessorData({ base, user, signal }) {
   const grupos = [];
   groupList.forEach((grupo, index) => {
     const detalhe = detalhes[index];
-    const orientacao = orientacoes.find((item) => sameId(item.idOrientacao, grupo.idOrientacao)) || orientacoes[0];
+    const orientacao =
+      orientacoes.find((item) => sameId(item.idOrientacao, grupo.idOrientacao)) ||
+      orientacoes[0];
     grupos.push({
       ...grupo,
       idOrientacao: grupo.idOrientacao ?? orientacao?.idOrientacao,
@@ -297,10 +303,13 @@ async function loadAlunoData({ base, user, signal }) {
   }
   const idGrupo = user.idGrupo ?? null;
 
+  // MUDANÇA: o GET do TCC tolera 403 (allowForbidden) para não derrubar o portal
   const [perfil, grupo, tcc] = await Promise.all([
     apiRequest(`/aluno/${enc(rm)}`, { signal }),
     idGrupo != null ? apiRequest(`/grupo/${enc(idGrupo)}`, { signal }) : null,
-    idGrupo != null ? getOptional(`/tcc/grupo/${enc(idGrupo)}`, signal) : null,
+    idGrupo != null
+      ? getOptional(`/tcc/grupo/${enc(idGrupo)}`, signal, { allowForbidden: true })
+      : null,
   ]);
 
   const idCurso = perfil?.curso?.idCurso ?? user.idCurso;
@@ -330,22 +339,24 @@ async function loadAlunoData({ base, user, signal }) {
       )
     : [];
 
-  // CORREÇÃO: Monta a orientação do aluno para que o frontend consiga exibir os dados
-  const orientacoesDoAluno = grupo && grupo.idOrientacao ? [
-    {
-      idOrientacao: grupo.idOrientacao,
-      idCurso: idCurso,
-      rmProfessor: professores[0]?.rmProfessor ?? null,
-      turma: turma,
-    }
-  ] : [];
+  const orientacoesDoAluno =
+    grupo && grupo.idOrientacao
+      ? [
+          {
+            idOrientacao: grupo.idOrientacao,
+            idCurso: idCurso,
+            rmProfessor: professores[0]?.rmProfessor ?? null,
+            turma: turma,
+          },
+        ]
+      : [];
 
   return finalize({
     ...base,
     cursos: base.cursos.filter((curso) => sameId(curso.idCurso, idCurso)),
     professores,
     alunos: [aluno, ...colegas],
-    orientacoes: orientacoesDoAluno, // <--- AGORA NÃO ESTÁ VAZIO
+    orientacoes: orientacoesDoAluno,
     grupos: grupo
       ? [
           {
@@ -353,8 +364,8 @@ async function loadAlunoData({ base, user, signal }) {
             nomeGrupo: grupo.nomeGrupo,
             linkFoto: grupo.linkFoto,
             ano: grupo.ano,
-            idOrientacao: grupo.idOrientacao, 
-            capacidadeMaxima: grupo.capacidadeMaxima, 
+            idOrientacao: grupo.idOrientacao,
+            capacidadeMaxima: grupo.capacidadeMaxima,
             nomeOrientador: grupo.nomeOrientador,
             nomeEtec: grupo.nomeEtec,
             nomeCurso: grupo.nomeCurso,
@@ -404,22 +415,36 @@ export async function getPortalData({ role, user, signal } = {}) {
 }
 
 export function createEntity(collection, record) {
-
+  // Rota especial para Aluno (o backend exige o curso na URL)
   if (collection === "alunos") {
     const { idCurso, ...rest } = record;
     if (!idCurso) throw new Error("O curso é obrigatório para cadastrar o aluno.");
-    
-    return apiRequest(`/aluno/curso/${encodeURIComponent(idCurso)}`, { 
-      method: "POST", 
+
+    return apiRequest(`/aluno/curso/${enc(idCurso)}`, {
+      method: "POST",
       body: {
         rmAluno: Number(rest.rmAluno),
         nome: rest.nome,
         senha: rest.senha,
         turma: rest.turma,
-      } 
+      },
     });
   }
-  
+
+  // Rota especial para TCC (o backend exige o ID do grupo na URL
+  // e preenche data e status sozinho)
+  if (collection === "tccs") {
+    const { idGrupo, tema, descricao } = record;
+    if (idGrupo == null || idGrupo === "") {
+      throw new Error("Você precisa estar vinculado a um grupo para cadastrar o TCC.");
+    }
+    return apiRequest(`/tcc/grupo/${enc(idGrupo)}`, {
+      method: "POST",
+      body: { tema, descricao },
+    });
+  }
+
+  // Outras rotas normais
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
   return apiRequest(path, { method: "POST", body: record });
@@ -428,10 +453,10 @@ export function createEntity(collection, record) {
 export function updateEntity(collection, key, record) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
-  return apiRequest(
-    `${path}/${encodeURIComponent(String(key))}`,
-    { method: "PUT", body: record },
-  );
+  return apiRequest(`${path}/${encodeURIComponent(String(key))}`, {
+    method: "PUT",
+    body: record,
+  });
 }
 
 export function updateProfessorGroup(idGrupo, record) {
@@ -497,10 +522,9 @@ export function excluirMensagem(idGrupo, idMensagem) {
 export function deleteEntity(collection, key) {
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
-  return apiRequest(
-    `${path}/${encodeURIComponent(String(key))}`,
-    { method: "DELETE" },
-  );
+  return apiRequest(`${path}/${encodeURIComponent(String(key))}`, {
+    method: "DELETE",
+  });
 }
 
 export function adicionarAlunoAoGrupo(idGrupo, rmAluno) {

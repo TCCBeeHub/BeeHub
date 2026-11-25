@@ -54,7 +54,9 @@ public class MensagemGrupoController {
         Long rm = tipo == TipoRemetenteMensagem.PROFESSOR
                 ? sessaoValidator.validarProfessorLogado(session)
                 : sessaoValidator.validarAlunoLogado(session);
-        return mensagemService.editar(idGrupo, idMensagem, rm, tipo, dto.conteudo());
+
+        // CORREÇÃO AQUI: Passando rm na 2ª posição e idMensagem na 3ª
+        return mensagemService.editar(idGrupo, rm, idMensagem, tipo, dto.conteudo());
     }
 
     @DeleteMapping("/{idMensagem}")
