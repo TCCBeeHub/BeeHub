@@ -19,22 +19,24 @@ export function EntityForm({
   const isProfessorCreatingGroup = role === "professor" && collection === "grupos" && !editing;
 
   const allowedFields = editing
-    ? [...editableFields(role, collection, config), "idOrientacao"] 
+    ? editableFields(role, collection, config)
     : role === "administrador"
       ? [...editableFields(role, collection, config), accountPasswordField]
       : isProfessorCreatingGroup
         ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
         : collection === "tccs"
-          ? ["codTCC", "idGrupo", "tema", "linkSlide", "linkArtigo", "status", "descricao", "linkSite", "dataCriacao"]
+          ? ["tema", "descricao"] // <--- Apenas tema e descrição na criação
           : [];
 
   const formFields = !editing && role === "administrador" && adminCreateFields[collection]
       ? adminCreateFields[collection]
       : isProfessorCreatingGroup
         ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima"]
-        : collection === "grupos" && editing 
-          ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima", "linkFoto"]
-          : config.fields;
+        : collection === "tccs" && !editing
+          ? ["tema", "descricao"] // <--- Ordem visual na criação
+          : collection === "grupos" && editing 
+            ? ["nomeGrupo", "idOrientacao", "ano", "capacidadeMaxima", "linkFoto"]
+            : config.fields;
 
   const fields = [...formFields, accountPasswordField].filter(Boolean).filter(
     (field) => allowedFields.includes(field) || (!editing && field === key && role === "administrador"),
@@ -160,24 +162,35 @@ export function EntityForm({
         </p>
         <form onSubmit={onSave}>
           <div className="form-grid">
+            
+            {/* AVISO DE GRUPO (Apenas visual para o aluno) */}
+            {collection === "tccs" && !editing && role === "aluno" && (
+              <div style={{ gridColumn: "1 / -1", marginBottom: "16px", padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px" }}>
+                <label className="form-field" style={{ margin: 0 }}>
+                  <span>Grupo vinculado</span>
+                  <input 
+                    type="text" 
+                    value={record.idGrupo ? (data.grupos.find(g => String(g.idGrupo) === String(record.idGrupo))?.nomeGrupo || "Seu Grupo") : "Nenhum grupo vinculado"} 
+                    disabled 
+                    readOnly
+                  />
+                </label>
+              </div>
+            )}
+
             {fields.map((field) => {
               const type = getFieldType(field);
               const choices = choicesFor(field);
-              // Garante que o valor 3 (número) vire "3" (string) para o input
               const value = record[field] != null ? String(record[field]) : "";
               const isKey = field === key;
               const isLockedKey = (editing && isKey) || (!editing && isKey && role !== "administrador");
               
-              // Bloqueia Orientação na edição
               const isOrientacaoLocked = isEditingGroup && field === "idOrientacao" && !isAdmin;
-              // Bloqueia Capacidade na edição para não-admin
               const isCapacidadeLocked = isEditingGroup && field === "capacidadeMaxima" && !isAdmin;
-              // Bloqueia tudo para o aluno, menos a foto
               const isAlunoBlocked = role === "aluno" && isEditingGroup && field !== "linkFoto";
 
               const isDisabled = isLockedKey || isOrientacaoLocked || isCapacidadeLocked || isAlunoBlocked;
 
-              // Renderiza a Orientação como texto (para não virar select)
               if (isEditingGroup && field === "idOrientacao") {
                 return (
                   <label className="form-field" key={field}>

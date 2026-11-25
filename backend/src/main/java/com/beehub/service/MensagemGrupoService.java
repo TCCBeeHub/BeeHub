@@ -34,9 +34,8 @@ public class MensagemGrupoService {
     public List<MensagemGrupoResponseDTO> listar(Long idGrupo, Long rmRemetente,
                                                  TipoRemetenteMensagem tipo) {
         validarAcesso(idGrupo, rmRemetente, tipo);
-        return mensagemRepository.findTop100ByGrupo_IdGrupoOrderByEnviadaEmDesc(idGrupo)
+        return mensagemRepository.findTop100ByGrupo_IdGrupoOrderByEnviadaEmAsc(idGrupo)
                 .stream()
-                .sorted(Comparator.comparing(MensagemGrupo::getEnviadaEm))
                 .map(MensagemGrupoResponseDTO::new)
                 .toList();
     }

@@ -7,7 +7,9 @@ function formatMessageTime(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+  
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
@@ -59,30 +61,36 @@ export function ConversationPage({ role, user, data, groupId }) {
   const [editText, setEditText] = useState("");
   const [editBusy, setEditBusy] = useState(false);
 
-  const loadMessages = (signal) => {
+  // useEffect corrigido direto com a lógica
+  useEffect(() => {
     if (activeGroupId == null || activeGroupId === "") {
       setMessages([]);
       return;
     }
+    
+    const controller = new AbortController();
     setLoading(true);
     setError("");
-    getGroupMessages(activeGroupId, signal)
+
+    getGroupMessages(activeGroupId, controller.signal)
       .then((loadedMessages) => {
-        if (!signal?.aborted) setMessages(loadedMessages);
+        if (!controller.signal.aborted) {
+          // Força a ordenação cronológica no front (do mais antigo para o mais novo)
+          const ordenadas = [...loadedMessages].sort((a, b) => 
+            new Date(a.enviadaEm) - new Date(b.enviadaEm)
+          );
+          setMessages(ordenadas);
+        }
       })
       .catch((loadError) => {
-        if (!signal?.aborted) {
+        if (!controller.signal.aborted) {
           setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar as conversas.");
         }
       })
       .finally(() => {
-        if (!signal?.aborted) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-  };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadMessages(controller.signal);
     return () => controller.abort();
   }, [activeGroupId]);
 
@@ -112,7 +120,7 @@ export function ConversationPage({ role, user, data, groupId }) {
     setError("");
     try {
       await editarMensagem(activeGroupId, idMensagem, content);
-      // Atualiza a lista localmente para não precisar recarregar tudo
+      // Atualiza a lista localmente
       setMessages((current) => 
         current.map((msg) => 
           msg.idMensagem === idMensagem ? { ...msg, conteudo: content } : msg
@@ -133,7 +141,6 @@ export function ConversationPage({ role, user, data, groupId }) {
     setError("");
     try {
       await excluirMensagem(activeGroupId, idMensagem);
-      // Remove localmente
       setMessages((current) => current.filter((msg) => msg.idMensagem !== idMensagem));
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Não foi possível excluir a mensagem.");

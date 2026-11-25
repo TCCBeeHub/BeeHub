@@ -149,8 +149,8 @@ export function PortalApp() {
     }
 
     if (!record && targetCollection === "tccs") {
-      draft.codTCC = getNextTccCode(data);
-      if (role === "aluno") draft.idGrupo = Number(user?.idGrupo) || "";
+      // O backend gera o codTCC e o idGrupo agora, então não precisamos mais
+      // preencher nada manualmente aqui.
       if (role === "professor") {
         const assignedGroups = filterCollection(role, user, data, "grupos").filter(
           (group) => !data.tccs.some((item) => item.idGrupo === group.idGrupo),
@@ -234,6 +234,18 @@ export function PortalApp() {
             delete payload.quantidadeAlunos;
             delete payload.alunosSelecionados;
           }
+        }
+
+        if (targetCollection === "tccs" && !editing) {
+          // Remove campos que o TccRequestDTO não espera, o backend preenche
+          delete payload.idGrupo;
+          delete payload.codTCC;
+          delete payload.status;
+          delete payload.dataCriacao;
+          delete payload.linkSlide;
+          delete payload.linkArtigo;
+          delete payload.linkSite;
+          delete payload.feedbackOrientador;
         }
 
         if (targetCollection === "alunos") {

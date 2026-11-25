@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, FileText, MessageCircle, Pencil, Send, Trash2, UsersRound } from "lucide-react";
+import { ArrowLeft, Check, FileText, MessageCircle, Pencil, Send, Trash2, UsersRound, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { updateProfessorGroupTcc, transitionTcc } from "../../services/portalApi";
+import { updateProfessorGroupTcc, transitionTcc, adicionarAlunoAoGrupo, removerAlunoDoGrupo } from "../../services/portalApi";
 import { STATUS_LABELS, orientationSummary } from "./portal-data";
 import { ConversationPage } from "./ConversationPage";
 import { EmptyState, PageHeading, SafeExternalLink } from "./PortalShared";
@@ -32,6 +32,10 @@ export function GroupWorkspacePage({
   const [tccBusy, setTccBusy] = useState(false);
   const [tccError, setTccError] = useState("");
 
+  // Estados para adicionar aluno
+  const [alunoSelecionado, setAlunoSelecionado] = useState("");
+  const [busyAluno, setBusyAluno] = useState(false);
+
   useEffect(() => {
     setTccDraft({
       descricao: tcc?.descricao ?? "",
@@ -41,6 +45,42 @@ export function GroupWorkspacePage({
       linkSlide: tcc?.linkSlide ?? "",
     });
   }, [tcc]);
+
+  // Filtra alunos que são da mesma orientação (curso/turma) e ainda não estão no grupo
+  const alunosDisponiveis = data.alunos.filter((aluno) => {
+    const jaEstaNoGrupo = String(aluno.idGrupo) === String(group.idGrupo);
+    const mesmoCurso = String(aluno.idCurso) === String(orientation?.idCurso);
+    const mesmaTurma = aluno.turma === orientation?.turma;
+    const semGrupo = aluno.idGrupo == null || aluno.idGrupo === "";
+    return !jaEstaNoGrupo && mesmoCurso && mesmaTurma && semGrupo;
+  });
+
+  const handleAddAluno = async () => {
+    if (!alunoSelecionado) return;
+    setBusyAluno(true);
+    try {
+      await adicionarAlunoAoGrupo(group.idGrupo, alunoSelecionado);
+      setAlunoSelecionado("");
+      await onRefresh();
+    } catch (error) {
+      alert(error.message || "Erro ao adicionar aluno.");
+    } finally {
+      setBusyAluno(false);
+    }
+  };
+
+  const handleRemoveAluno = async (rmAluno) => {
+    if (!window.confirm("Remover este aluno do grupo?")) return;
+    setBusyAluno(true);
+    try {
+      await removerAlunoDoGrupo(group.idGrupo, rmAluno);
+      await onRefresh();
+    } catch (error) {
+      alert(error.message || "Erro ao remover aluno.");
+    } finally {
+      setBusyAluno(false);
+    }
+  };
 
   const saveTcc = async (event) => {
     event.preventDefault();
@@ -129,21 +169,61 @@ export function GroupWorkspacePage({
             <span className="eyebrow">PARTICIPANTES</span>
             <h2>Alunos do grupo</h2>
           </div>
-          <span className="soft-pill">{students.length} integrante(s)</span>
+          <span className="soft-pill">{students.length} de {group.capacidadeMaxima} integrante(s)</span>
         </div>
+        
         {students.length ? (
           <ul className="group-member-list">
             {students.map((student) => (
-              <li key={student.rmAluno}>
-                {student.linkFoto
-                  ? <img src={student.linkFoto} alt="" />
-                  : <span className="group-member-avatar"><UsersRound size={16} /></span>}
-                <span><strong>{student.nome || `RM ${student.rmAluno}`}</strong><small>RM {student.rmAluno}</small></span>
+              <li key={student.rmAluno} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {student.linkFoto
+                    ? <img src={student.linkFoto} alt="" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+                    : <span className="group-member-avatar"><UsersRound size={16} /></span>}
+                  <span><strong>{student.nome || `RM ${student.rmAluno}`}</strong><small>RM {student.rmAluno}</small></span>
+                </div>
+                <button 
+                  className="button button-danger" 
+                  style={{ padding: "4px 8px", height: "auto" }}
+                  onClick={() => handleRemoveAluno(student.rmAluno)}
+                  disabled={busyAluno}
+                  title="Remover aluno"
+                >
+                  <Trash2 size={14} />
+                </button>
               </li>
             ))}
           </ul>
         ) : (
           <p className="group-workspace-empty">Ainda não há alunos vinculados a este grupo.</p>
+        )}
+
+        {/* ÁREA PARA ADICIONAR NOVOS ALUNOS */}
+        {alunosDisponiveis.length > 0 && students.length < (group.capacidadeMaxima || 4) && (
+          <div style={{ marginTop: "16px", padding: "16px", border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.02)" }}>
+            <strong style={{ display: "block", marginBottom: "8px" }}>Adicionar novo aluno</strong>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <select 
+                value={alunoSelecionado} 
+                onChange={(e) => setAlunoSelecionado(e.target.value)}
+                style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "1px solid var(--border)", backgroundColor: "var(--bg)", color: "var(--text)" }}
+              >
+                <option value="">Selecione um aluno disponível...</option>
+                {alunosDisponiveis.map((a) => (
+                  <option key={a.rmAluno} value={a.rmAluno}>
+                    {a.nome || `RM ${a.rmAluno}`} (RM {a.rmAluno})
+                  </option>
+                ))}
+              </select>
+              <button 
+                className="button button-primary" 
+                onClick={handleAddAluno}
+                disabled={!alunoSelecionado || busyAluno}
+              >
+                <UserPlus size={16} /> Adicionar
+              </button>
+            </div>
+          </div>
         )}
       </section>
 

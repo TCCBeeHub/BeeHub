@@ -330,12 +330,22 @@ async function loadAlunoData({ base, user, signal }) {
       )
     : [];
 
+  // CORREÇÃO: Monta a orientação do aluno para que o frontend consiga exibir os dados
+  const orientacoesDoAluno = grupo && grupo.idOrientacao ? [
+    {
+      idOrientacao: grupo.idOrientacao,
+      idCurso: idCurso,
+      rmProfessor: professores[0]?.rmProfessor ?? null,
+      turma: turma,
+    }
+  ] : [];
+
   return finalize({
     ...base,
     cursos: base.cursos.filter((curso) => sameId(curso.idCurso, idCurso)),
     professores,
     alunos: [aluno, ...colegas],
-    orientacoes: [],
+    orientacoes: orientacoesDoAluno, // <--- AGORA NÃO ESTÁ VAZIO
     grupos: grupo
       ? [
           {
@@ -394,6 +404,22 @@ export async function getPortalData({ role, user, signal } = {}) {
 }
 
 export function createEntity(collection, record) {
+
+  if (collection === "alunos") {
+    const { idCurso, ...rest } = record;
+    if (!idCurso) throw new Error("O curso é obrigatório para cadastrar o aluno.");
+    
+    return apiRequest(`/aluno/curso/${encodeURIComponent(idCurso)}`, { 
+      method: "POST", 
+      body: {
+        rmAluno: Number(rest.rmAluno),
+        nome: rest.nome,
+        senha: rest.senha,
+        turma: rest.turma,
+      } 
+    });
+  }
+  
   const path = COLLECTION_PATHS[collection];
   if (!path) throw new Error(`Coleção inválida: ${collection}.`);
   return apiRequest(path, { method: "POST", body: record });
@@ -477,10 +503,15 @@ export function deleteEntity(collection, key) {
   );
 }
 
-// NOVA FUNÇÃO: Adiciona aluno ao grupo via rota oficial
 export function adicionarAlunoAoGrupo(idGrupo, rmAluno) {
   return apiRequest(`/grupo/${enc(idGrupo)}/aluno/${enc(rmAluno)}`, {
     method: "POST",
+  });
+}
+
+export function removerAlunoDoGrupo(idGrupo, rmAluno) {
+  return apiRequest(`/grupo/${enc(idGrupo)}/aluno/${enc(rmAluno)}`, {
+    method: "DELETE",
   });
 }
 
